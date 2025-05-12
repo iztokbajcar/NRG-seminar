@@ -54,6 +54,7 @@ class PointCloud:
         self.points_y = points_y
         self.points_z = points_z
         self.points_class = points_class
+        self.cluster_indices = []
 
     @staticmethod
     def from_laz_file(filename, chunk_size=10_000):
@@ -90,6 +91,9 @@ class PointCloud:
         print(f"File read in {end - start} seconds.")
 
         return PointCloud(points_x, points_y, points_z, points_class)
+
+    def set_cluster_indices(self, cluster_indices):
+        self.cluster_indices = cluster_indices
 
     def to_array(self):
         return np.array(list(zip(self.points_x, self.points_y, self.points_z)))

@@ -6,14 +6,15 @@ import os
 # %%
 print(os.getcwd())
 pc = PointCloud.from_laz_file("data/test.laz")
+print(f"{len(pc.points_x)} points")
 
 # %%
-ss = SensitivitySampling(pc.to_array())
+ss = SensitivitySampling(pc)
 
 # %%
-results = ss.sample()
+ss.sample()
 
 # %%
-print(results.labels_)
+print(pc.cluster_indices)
 
 # %%
