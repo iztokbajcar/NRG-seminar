@@ -2,6 +2,40 @@ import laspy
 import numpy as np
 import time
 
+from point_classification import EVodeClassification
+
+
+class Point:
+    def __init__(self, x, y, z, classification):
+        """
+        Initializes a Point instance with a given set of coordinates and classification.
+
+        Args:
+            x (float): The point's x coordinate.
+            y (float): The point's y coordinate.
+            z (float): The point's z coordinate.
+            classification (int): The point's classification.
+        """
+        self.x = x
+        self.y = y
+        self.z = z
+        self.classification = classification
+
+    def __str__(self):
+        return f"({self.x}, {self.y}, {self.z}, {self.classification})"
+
+    def to_xyz(self):
+        """
+        Returns the point's coordinates as a numpy array.
+
+        Returns:
+            A numpy array of length 3, containing the point's x, y, and z coordinates.
+        """
+        return np.array([self.x, self.y, self.z])
+
+    def class_name(self, classification_rule=EVodeClassification):
+        return classification_rule(self.classification).name
+
 
 class PointCloud:
     """A class that represents a point cloud."""
@@ -51,7 +85,7 @@ class PointCloud:
                 points_x += las_points.x
                 points_y += las_points.y
                 points_z += las_points.z
-                points_class = las_points.classification
+                points_class += las_points.classification
 
         end = time.time()
         print(f"Read points from file '{filename}' in {end - start} seconds.")
