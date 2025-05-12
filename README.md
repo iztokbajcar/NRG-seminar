@@ -1,5 +1,8 @@
 # Seminarska naloga pri predmetu NRG
 
-## Navodila
+## Prerequisites
+- ([PDM](https://pdm-project.org/en/latest/))
+
+## Instructions
 - `pdm install`
-- TODO
+- `pdm run main`
