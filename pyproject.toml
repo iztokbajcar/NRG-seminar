@@ -1,0 +1,13 @@
+[project]
+name = "NRG-seminar"
+version = "0.1.0"
+description = "Seminarska naloga pri predmetu NRG"
+authors = [{ name = "Iztok Bajcar", email = "iztok.bajcar@gmail.com" }]
+dependencies = []
+requires-python = "==3.11.*"
+readme = "README.md"
+license = { text = "MIT" }
+
+
+[tool.pdm]
+distribution = false
