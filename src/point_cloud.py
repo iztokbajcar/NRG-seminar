@@ -2,7 +2,7 @@ import laspy
 import numpy as np
 import time
 
-from point_classification import EVodeClassification
+from .point_classification import EVodeClassification
 
 
 class Point:
@@ -67,12 +67,11 @@ class PointCloud:
         Returns:
             PointCloud: The point cloud that was read from the file.
         """
+
+        print(f"Reading points from file '{filename}'...")
         start = time.time()
 
         with laspy.open(filename) as f:
-            num_points = f.header.point_count
-            print(num_points)
-
             # the arrays that we will construct the PointCloud from at the end
             points_x = []
             points_y = []
@@ -88,6 +87,9 @@ class PointCloud:
                 points_class += las_points.classification
 
         end = time.time()
-        print(f"Read points from file '{filename}' in {end - start} seconds.")
+        print(f"File read in {end - start} seconds.")
 
         return PointCloud(points_x, points_y, points_z, points_class)
+
+    def to_array(self):
+        return np.array(list(zip(self.points_x, self.points_y, self.points_z)))

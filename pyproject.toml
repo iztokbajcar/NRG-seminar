@@ -3,7 +3,11 @@ name = "NRG-seminar"
 version = "0.1.0"
 description = "Seminarska naloga pri predmetu NRG"
 authors = [{ name = "Iztok Bajcar", email = "iztok.bajcar@gmail.com" }]
-dependencies = ["laspy[lazrs]>=2.5.4"]
+dependencies = [
+    "laspy[lazrs]>=2.5.4",
+    "scikit-learn>=1.6.1",
+    "ipykernel>=6.29.5",
+]
 requires-python = "==3.11.*"
 readme = "README.md"
 license = { text = "MIT" }
@@ -13,4 +17,4 @@ license = { text = "MIT" }
 distribution = false
 
 [tool.pdm.scripts]
-main = "python3 src/main.py"
+main = "python3 main.py"
