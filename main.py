@@ -16,5 +16,6 @@ ss.sample()
 
 # %%
 print(pc.cluster_indices)
+print(pc.cluster_centers)
 
 # %%
