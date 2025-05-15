@@ -1,6 +1,7 @@
 # %%
 from src.point_cloud import PointCloud
 from src.sensitivity_sampling import SensitivitySampling
+import numpy as np
 import os
 
 # %%
@@ -15,7 +16,8 @@ ss = SensitivitySampling(pc)
 ss.sample()
 
 # %%
-print(pc.cluster_indices)
+print(pc.labels)
+print(np.unique(pc.labels, return_counts=True))
 print(pc.cluster_centers)
 
 # %%
