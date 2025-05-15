@@ -16,8 +16,9 @@ ss = SensitivitySampling(pc)
 ss.sample()
 
 # %%
-print(pc.labels)
-print(np.unique(pc.labels, return_counts=True))
-print(pc.cluster_centers)
+print(pc.get_labels())
+print(np.unique(pc.get_labels(), return_counts=True))
+print(pc.get_cluster_centers())
+print(pc.get_kmeans_cost())
 
 # %%

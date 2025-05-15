@@ -54,6 +54,7 @@ class PointCloud:
         self.points_y = points_y
         self.points_z = points_z
         self.points_class = points_class
+        self.kmeans_cost = None
         self.labels = []
         self.clustter_centers = []
 
@@ -93,8 +94,29 @@ class PointCloud:
 
         return PointCloud(points_x, points_y, points_z, points_class)
 
+    def get_points_x(self):
+        return self.points_x
+
+    def get_points_y(self):
+        return self.points_y
+
+    def get_points_z(self):
+        return self.points_z
+
+    def get_kmeans_cost(self):
+        return self.kmeans_cost
+
+    def set_kmeans_cost(self, cost):
+        self.kmeans_cost = cost
+
+    def get_labels(self):
+        return self.labels
+
     def set_labels(self, labels):
         self.labels = labels
+
+    def get_cluster_centers(self):
+        return self.cluster_centers
 
     def set_cluster_centers(self, cluster_centers):
         self.cluster_centers = cluster_centers
