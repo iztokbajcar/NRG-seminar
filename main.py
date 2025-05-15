@@ -13,12 +13,12 @@ print(f"{len(pc.points_x)} points")
 ss = SensitivitySampling(pc)
 
 # %%
-ss.sample()
+print(ss.sample(10))
 
 # %%
 print(pc.get_labels())
 print(np.unique(pc.get_labels(), return_counts=True))
 print(pc.get_cluster_centers())
-print(pc.get_kmeans_cost())
+print(pc.get_squared_distances())
 
 # %%

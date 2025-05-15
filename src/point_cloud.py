@@ -3,6 +3,7 @@ import numpy as np
 import time
 
 from .point_classification import EVodeClassification
+from sklearn.cluster import KMeans
 
 
 class Point:
@@ -56,7 +57,8 @@ class PointCloud:
         self.points_class = points_class
         self.kmeans_cost = None
         self.labels = []
-        self.clustter_centers = []
+        self.cluster_centers = []
+        self.squared_distances = []
 
     @staticmethod
     def from_laz_file(filename, chunk_size=10_000):
@@ -94,6 +96,48 @@ class PointCloud:
 
         return PointCloud(points_x, points_y, points_z, points_class)
 
+    def kmeans(self, k=10):
+        results = KMeans(n_clusters=k).fit(self.to_array())
+        self.set_labels(results.labels_)
+        self.set_cluster_centers(results.cluster_centers_)
+        self.set_squared_distances(self.calculate_squared_distances())
+
+    def calculate_squared_distances(self):
+        points = self.to_array()
+        centers = np.array(self.get_cluster_centers())
+        labels = self.get_labels()
+
+        # Squared distance of each point to its assigned center
+        distances = np.linalg.norm(points - centers[labels], axis=1)
+        return distances**2
+
+    # def calculate_kmeans_cost(self):
+    #     points_zipped = np.array(
+    #         list(zip(self.get_points_x(), self.get_points_y(), self.get_points_z()))
+    #     )
+
+    #     centers = np.array(self.get_cluster_centers())
+    #     distances = np.linalg.norm(points_zipped[:, np.newaxis] - centers, axis=2)
+
+    #     min_distances = np.min(distances, axis=1)
+    #     result = np.sum(min_distances**2)
+
+    #     return result
+
+    def get_cost(self):
+        # if the clustering data is not available on the point cloud, run clustering
+        if len(self.labels) == 0:
+            self.kmeans()
+
+        # if the cost data is already available on the point cloud, return it
+        if self.get_kmeans_cost() is not None:
+            return self.get_kmeans_cost()
+
+        # calculate the cost of the clustering
+        cost = self.calculate_kmeans_cost()
+        self.kmeans_cost = cost
+        return cost
+
     def get_points_x(self):
         return self.points_x
 
@@ -120,6 +164,12 @@ class PointCloud:
 
     def set_cluster_centers(self, cluster_centers):
         self.cluster_centers = cluster_centers
+
+    def get_squared_distances(self):
+        return self.squared_distances
+
+    def set_squared_distances(self, squared_distances):
+        self.squared_distances = squared_distances
 
     def to_array(self):
         return np.array(list(zip(self.points_x, self.points_y, self.points_z)))
