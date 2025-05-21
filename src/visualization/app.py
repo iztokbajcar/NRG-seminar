@@ -3,17 +3,18 @@ import numpy as np
 from OpenGL.GL import *
 import OpenGL.GL.shaders as shaders
 
-from shaders import VERTEX_SHADER, FRAGMENT_SHADER
+from src.visualization.shaders import VERTEX_SHADER, FRAGMENT_SHADER
 
 
 class App:
-    def __init__(self):
+    def __init__(self, pc):
+        self.pc = pc
         self.window = None
         self.vao = None
         self.program = None
         self.n_points = None
 
-    def load_data(self, point_cloud):
+    def load_data(self):
         # vertex data will be stored in the following order:
         # 1. x1, x2, ..., xn
         # 2. y1, y2, ..., yn
@@ -21,10 +22,15 @@ class App:
         # 4. class1, class2, ..., classn
 
         # TODO replace placeholder data with points from the point cloud
-        points_x = np.array([-0.5, -0.5, -0.5, 0, 0.5, 0.5, 0.5, 0], dtype=np.float32)
-        points_y = np.array([-0.5, 0, 0.5, 0.5, 0.5, 0, -0.5, -0.5], dtype=np.float32)
-        points_z = np.array([0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
-        points_class = np.array([0, 1, 2, 3, 4, 5, 6, 7], dtype=np.int32)
+        # points_x = np.array([-0.5, -0.5, -0.5, 0, 0.5, 0.5, 0.5, 0], dtype=np.float32)
+        # points_y = np.array([-0.5, 0, 0.5, 0.5, 0.5, 0, -0.5, -0.5], dtype=np.float32)
+        # points_z = np.array([0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
+        # points_class = np.array([0, 1, 2, 3, 4, 5, 6, 7], dtype=np.int32)
+        print("Loading vertex data...")
+        points_x = self.pc.get_points_x()
+        points_y = self.pc.get_points_y()
+        points_z = self.pc.get_points_z()
+        points_class = self.pc.get_labels()
 
         pos_buffer_data = np.concatenate([points_x, points_y, points_z])
         self.n_points = 8  # TODO replace with real number of points
@@ -65,6 +71,8 @@ class App:
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
+        print("Vertex data loaded!")
+
         return vao
 
     def compile_shaders(self, vertex_source, fragment_source):
@@ -102,7 +110,7 @@ class App:
         glViewport(0, 0, w, h)
 
         # load data
-        self.vao = self.load_data(None)
+        self.vao = self.load_data()
 
         self.program = self.compile_shaders(VERTEX_SHADER, FRAGMENT_SHADER)
         glUseProgram(self.program)

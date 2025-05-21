@@ -1,20 +1,22 @@
 # %%
 from src.point_cloud import PointCloud
 from src.sensitivity_sampling import SensitivitySampling
+from src.visualization.app import App
 from matplotlib import pyplot as plt
 import numpy as np
 import os
 
 # %%
 print(os.getcwd())
-pc = PointCloud.from_laz_file("data/test.laz")
+pc = PointCloud.from_laz_file("data/ljubljanski_grad.las")
+# pc = PointCloud.from_laz_file("data/GK_462_100.laz")
 print(f"{len(pc.points_x)} points")
 
 # %%
 ss = SensitivitySampling(pc)
 
 # %%
-coreset, weights = ss.sample(100)
+coreset, weights = ss.sample(1000)
 
 # %%
 print(f"coreset: {coreset}")
@@ -39,5 +41,9 @@ print(pc.get_labels())
 print(np.unique(pc.get_labels(), return_counts=True))
 print(pc.get_cluster_centers())
 print(pc.get_squared_distances())
+
+# %%
+app = App(pc)
+app.run()
 
 # %%
