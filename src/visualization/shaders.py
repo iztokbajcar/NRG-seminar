@@ -7,33 +7,34 @@ layout (location = 2) in float aZPos;
 layout (location = 3) in int aClass;
 out vec4 oColor;
 
+uniform mat4 uModel;
+uniform mat4 uView;
+uniform mat4 uProjection;
+uniform vec3 uCameraPos;
+
 vec4 classToColor(int classID) {
-    if (classID == 1) {  // unclassified
-        return vec4(1, 1, 1, 1);
-    } else if (classID == 2) {  // ground
-        return vec4(1, 0, 0, 1);
-    } else if (classID == 3) {  // low vegetation
-        return vec4(1, 1, 0, 1);
-    } else if (classID == 4) {  // medium vegetation
-        return vec4(0, 1, 0, 1);
-    } else if (classID == 5) {  // high vegetation
-        return vec4(0, 1, 1, 1);
-    } else if (classID == 6) {  // building
-        return vec4(0, 0, 1, 1);
-    } else if (classID == 7) {  // low point
-        return vec4(1, 0, 1, 1);
-    }
-        
-    else {
-        return vec4(0.5, 0.5, 0.5, 1);
-    }
+    if (classID == 1) return vec4(1, 1, 1, 1);         // unclassified
+    else if (classID == 2) return vec4(1, 0, 0, 1);    // ground
+    else if (classID == 3) return vec4(1, 1, 0, 1);    // low vegetation
+    else if (classID == 4) return vec4(0, 1, 0, 1);    // medium vegetation
+    else if (classID == 5) return vec4(0, 1, 1, 1);    // high vegetation
+    else if (classID == 6) return vec4(0, 0, 1, 1);    // building
+    else if (classID == 7) return vec4(1, 0, 1, 1);    // low point
+    else return vec4(0.5, 0.5, 0.5, 1);                // other
 }
 
 void main()
 {
-    // gl_PointSize = 5.0;
-    gl_Position = vec4(aXPos, aYPos, aZPos, 1.0);
+    vec4 worldPosition = uModel * vec4(aXPos, aYPos, aZPos, 1.0);
+    vec4 viewPosition = uView * worldPosition;
 
+    gl_Position = uProjection * viewPosition;
+
+    float distance = length(worldPosition.xyz - uCameraPos);
+    float size = 20.0 / distance;
+    gl_PointSize = clamp(size, 2.0, 10.0);
+
+    gl_Position = uProjection * uView * uModel * vec4(aXPos, aYPos, aZPos, 1.0);
     oColor = classToColor(aClass);
 }
 """

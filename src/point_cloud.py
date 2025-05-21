@@ -147,6 +147,9 @@ class PointCloud:
     def get_points_z(self):
         return self.points_z
 
+    def get_points_class(self):
+        return self.points_class
+
     def get_kmeans_cost(self):
         return self.kmeans_cost
 

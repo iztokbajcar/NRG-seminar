@@ -13,10 +13,13 @@ pc = PointCloud.from_laz_file("data/ljubljanski_grad.las")
 print(f"{len(pc.points_x)} points")
 
 # %%
+print(np.unique(pc.get_points_class(), return_counts=True))
+
+# %%
 ss = SensitivitySampling(pc)
 
 # %%
-coreset, weights = ss.sample(1000)
+coreset, weights = ss.sample(100)
 
 # %%
 print(f"coreset: {coreset}")
@@ -37,8 +40,6 @@ fig.show()
 
 
 # %%
-print(pc.get_labels())
-print(np.unique(pc.get_labels(), return_counts=True))
 print(pc.get_cluster_centers())
 print(pc.get_squared_distances())
 
