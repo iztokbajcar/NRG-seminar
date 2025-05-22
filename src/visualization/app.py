@@ -139,6 +139,10 @@ class App:
     def scroll_callback(self, window, xoffset, yoffset):
         self.camera.zoom(yoffset * 10)
 
+    def resize_callback(self, window, width, height):
+        glViewport(0, 0, width, height)
+        self.camera.set_aspect_ratio(width / height)
+
     def run(self):
         # initialize GLFW
         if not glfw.init():
@@ -176,6 +180,7 @@ class App:
         glfw.set_cursor_pos_callback(self.window, self.mouse_callback)
         glfw.set_scroll_callback(self.window, self.scroll_callback)
         glfw.set_mouse_button_callback(self.window, self.mouse_button_callback)
+        glfw.set_framebuffer_size_callback(self.window, self.resize_callback)
 
         print("Entering render loop")
 

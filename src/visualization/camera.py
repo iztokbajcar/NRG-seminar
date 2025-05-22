@@ -26,6 +26,12 @@ class Camera:
 
         return Vector3([x, y, z]) + self.target
 
+    def get_aspect_ratio(self):
+        return self.aspect_ratio
+
+    def set_aspect_ratio(self, aspect_ratio):
+        self.aspect_ratio = aspect_ratio
+
     def get_view_matrix(self):
         eye = self.get_position()
         up = Vector3([0, 1, 0])
