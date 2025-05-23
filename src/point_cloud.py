@@ -1,5 +1,6 @@
 import laspy
 import numpy as np
+import os
 import time
 
 from .point_classification import EVodeClassification
@@ -96,6 +97,41 @@ class PointCloud:
 
         return PointCloud(points_x, points_y, points_z, points_class)
 
+    def export_to_laz_file(self, filename):
+        """
+        Exports the point cloud to a .laz file.
+
+        Args:
+            filename (str): The name of the file to write to.
+        """
+        print(f"Writing points to file '{filename}'...")
+        start = time.time()
+
+        # create a LAS header
+        header = laspy.LasHeader(point_format=3, version="1.2")
+        header.scales = [0.1, 0.1, 0.1]
+        header.offsets = [
+            np.min(self.points_x),
+            np.min(self.points_y),
+            np.min(self.points_z),
+        ]
+
+        # create a new laspy file
+        with laspy.open(filename, "w", header=header) as writer:
+            # create a new point record
+            points = laspy.ScaleAwarePointRecord.zeros(
+                len(self.points_x), header=header
+            )
+            points.x = self.points_x
+            points.y = self.points_y
+            points.z = self.points_z
+            points.classification = self.points_class
+
+            writer.write_points(points)
+
+        end = time.time()
+        print(f"File written in {end - start} seconds.")
+
     def kmeans(self, k=10):
         results = KMeans(n_clusters=k).fit(self.to_array())
         self.set_labels(results.labels_)
@@ -176,3 +212,81 @@ class PointCloud:
 
     def to_array(self):
         return np.array(list(zip(self.points_x, self.points_y, self.points_z)))
+
+    def split_into_tiles(self, nx, ny):
+        """
+        Splits the point cloud into a 2D grid of tiles across the XY plane.
+
+        Args:
+            nx (int): Number of tiles along the X-axis.
+            ny (int): Number of tiles along the Y-axis.
+
+        Returns:
+            list of PointCloud: A list of PointCloud objects, one per tile.
+        """
+        points_x = np.array(self.points_x)
+        points_y = np.array(self.points_y)
+        points_z = np.array(self.points_z)
+        points_class = np.array(self.points_class)
+
+        # compute the bounding box of the point cloud
+        # along x and y axes
+        min_x, max_x = np.min(points_x), np.max(points_x)
+        min_y, max_y = np.min(points_y), np.max(points_y)
+
+        # tile dimensions
+        tile_width = (max_x - min_x) / nx
+        tile_height = (max_y - min_y) / ny
+
+        tiles = []
+
+        for i in range(ny):
+            row = []
+            for j in range(nx):
+                x0 = min_x + j * tile_width  # low x edge
+                x1 = x0 + tile_width  # high x edge
+                y0 = min_y + i * tile_height
+                y1 = y0 + tile_height
+
+                # get indices of points that are inside the tile
+                # (find indices for which all conditions are true)
+                in_tile = (
+                    (points_x >= x0)
+                    & (points_x < x1)
+                    & (points_y >= y0)
+                    & (points_y < y1)
+                )
+
+                if np.any(in_tile):
+                    tile_pc = PointCloud(
+                        points_x[in_tile],
+                        points_y[in_tile],
+                        points_z[in_tile],
+                        points_class[in_tile],
+                    )
+                    row.append(tile_pc)
+            tiles.append(row)
+
+        return np.array(tiles)
+
+    def save_as_tiles(self, nx, ny, dir_name):
+        """
+        Splits the point cloud into tiles, then saves them
+        into the given directory.
+
+        Args:
+            dir_name (str): The name of the directory to save the tiles in.
+        """
+        # create the directory if it doesn't exist
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+
+        # split the point cloud into tiles
+        tiles = self.split_into_tiles(nx, ny)
+
+        # save each tile to a file
+        for i in range(tiles.shape[0]):
+            for j in range(tiles.shape[1]):
+                tile = tiles[i][j]
+                filename = f"{dir_name}/{i}_{j}.laz"
+                tile.export_to_laz_file(filename)
