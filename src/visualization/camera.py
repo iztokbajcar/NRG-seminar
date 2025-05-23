@@ -3,7 +3,7 @@ import math
 
 
 class Camera:
-    def __init__(self, target=Vector3([0, 0, 0]), distance=500.0):
+    def __init__(self, target=Vector3([0, 0, 0]), distance=500.0, fov=45.0):
         self.target = target
         self.distance = distance
 
@@ -11,7 +11,7 @@ class Camera:
         self.pitch = 0.0  # up/down
 
         self.aspect_ratio = 800 / 600
-        self.fov = 45.0
+        self.fov = fov
         self.near = 0.1
         self.far = 1000.0
 
@@ -25,6 +25,18 @@ class Camera:
         z = self.distance * math.cos(pitch_rad) * math.cos(yaw_rad)
 
         return Vector3([x, y, z]) + self.target
+
+    def get_target(self):
+        return self.target
+
+    def set_target(self, target):
+        self.target = target
+
+    def get_fov(self):
+        return self.fov
+
+    def set_fov(self, fov):
+        self.fov = fov
 
     def get_aspect_ratio(self):
         return self.aspect_ratio

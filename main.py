@@ -47,10 +47,10 @@ print(pc.get_squared_distances())
 pc.save_as_tiles(10, 10, "data/ljubljanski_grad_tiles")
 
 # %%
-tile = PointCloud.from_laz_file("data/ljubljanski_grad_tiles/1_2.laz")
+# tile = PointCloud.from_laz_file("data/ljubljanski_grad_tiles/1_2.laz")
 
 # %%
-app = App(tile)
+app = App("data/ljubljanski_grad_tiles", (10, 10))
 app.run()
 
 # %%

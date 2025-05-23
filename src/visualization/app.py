@@ -6,11 +6,13 @@ from pyrr import Matrix44, Vector3
 
 from src.visualization.camera import Camera
 from src.visualization.shaders import VERTEX_SHADER, FRAGMENT_SHADER
+from src.visualization.tile_manager import TileManager
 
 
 class App:
-    def __init__(self, pc):
-        self.pc = pc
+    def __init__(self, tiles_dir, tiles_dim):
+        self.tile_manager = TileManager(tiles_dir, tiles_dim)
+        self.tilevaos = []
         self.window = None
         self.vao = None
         self.program = None
@@ -18,65 +20,66 @@ class App:
         self.last_mouse = None
         self.dragging = False
 
-    def load_data(self):
+    def load_tile(self, tile):
         # vertex data will be stored in the following order:
         # 1. x1, x2, ..., xn
         # 2. y1, y2, ..., yn
         # 3. z1, z2, ..., zn
         # 4. class1, class2, ..., classn
 
-        # TODO replace placeholder data with points from the point cloud
-        # points_x = np.array([-0.5, -0.5, -0.5, 0, 0.5, 0.5, 0.5, 0], dtype=np.float32)
-        # points_y = np.array([-0.5, 0, 0.5, 0.5, 0.5, 0, -0.5, -0.5], dtype=np.float32)
-        # points_z = np.array([0, 0, 0, 0, 0, 0, 0, 0], dtype=np.float32)
-        # points_class = np.array([0, 1, 2, 3, 4, 5, 6, 7], dtype=np.int32)
+        print("Loading tile...")
 
-        print("Loading vertex data...")
-        points_x = np.array(self.pc.get_points_x(), dtype=np.float32)
-        points_y = np.array(self.pc.get_points_y(), dtype=np.float32)
-        points_z = np.array(self.pc.get_points_z(), dtype=np.float32)
-        points_class = np.array(self.pc.get_points_class(), dtype=np.int32)
+        points_x = tile.pc.get_points_x()
+        points_y = tile.pc.get_points_y()
+        points_z = tile.pc.get_points_z()
+        points_class = tile.pc.get_points_class()
 
-        print(np.mean(points_x), np.mean(points_y), np.mean(points_z))
+        points_x.append(0)
+        points_y.append(0)
+        points_z.append(0)
+        points_class.append(3)
 
         pos_buffer_data = np.concatenate(
             [points_x, points_y, points_z], dtype=np.float32
         )
         class_buffer_data = np.array(points_class, dtype=np.int32)
-        self.n_points = len(points_x)
-        print(f"n_points: {self.n_points}")
+        n_points = len(points_x)
 
         vao = glGenVertexArrays(1)
         vbo_pos = glGenBuffers(1)
         vbo_class = glGenBuffers(1)
 
         glBindVertexArray(vao)
+
+        # load position data
         glBindBuffer(GL_ARRAY_BUFFER, vbo_pos)
         glBufferData(
             GL_ARRAY_BUFFER, pos_buffer_data.nbytes, pos_buffer_data, GL_STATIC_DRAW
         )
 
-        # x coordinate
+        # x coordinates
         glEnableVertexAttribArray(0)
         glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
 
-        # y coordinate
+        # y coordinates
         glEnableVertexAttribArray(1)
         glVertexAttribPointer(
-            1, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(self.n_points * 4)
+            1, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(n_points * 4)
         )
 
-        # z coordinate
+        # z coordinates
         glEnableVertexAttribArray(2)
         glVertexAttribPointer(
-            2, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(2 * self.n_points * 4)
+            2, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(2 * n_points * 4)
         )
 
-        # class attribute
+        # load class data
         glBindBuffer(GL_ARRAY_BUFFER, vbo_class)
         glBufferData(
             GL_ARRAY_BUFFER, class_buffer_data.nbytes, class_buffer_data, GL_STATIC_DRAW
         )
+
+        # class attribute
         glEnableVertexAttribArray(3)
         glVertexAttribIPointer(3, 1, GL_INT, 0, ctypes.c_void_p(0))
 
@@ -84,9 +87,11 @@ class App:
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
-        print("Vertex data loaded!")
+        # save VAO and number of points
+        tile.vao = vao
+        tile.n_points = n_points
 
-        return vao
+        print(f"Tile loaded, number of points: {n_points}")
 
     def compile_shaders(self, vertex_source, fragment_source):
         vertex_shader = shaders.compileShader(vertex_source, GL_VERTEX_SHADER)
@@ -110,15 +115,28 @@ class App:
         view = self.camera.get_view_matrix()
         projection = self.camera.get_projection_matrix()
         cam_pos = self.camera.get_position()
+        cam_target = self.camera.get_target()
+        cam_fov = self.camera.get_fov()
 
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, model)
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, view)
         glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection)
         glUniform3f(cam_pos_loc, cam_pos[0], cam_pos[1], cam_pos[2])
 
-        glBindVertexArray(self.vao)
-        glDrawArrays(GL_POINTS, 0, self.n_points)
-        glBindVertexArray(0)
+        visible_tiles = self.tile_manager.get_visible_tiles(
+            cam_pos, cam_target, cam_fov
+        )
+        # print(f"Visible tiles: {len(visible_tiles)}")
+
+        # render visible tiles
+        for tile in visible_tiles:
+            # load tile and construct VAO if necessary
+            if tile.vao is None:
+                self.load_tile(tile)
+
+            glBindVertexArray(tile.vao)
+            glDrawArrays(GL_POINTS, 0, tile.n_points)
+            glBindVertexArray(0)
 
     def mouse_button_callback(self, window, button, action, mods):
         if button == glfw.MOUSE_BUTTON_LEFT:
@@ -161,18 +179,17 @@ class App:
         w, h = glfw.get_framebuffer_size(self.window)
         glViewport(0, 0, w, h)
 
-        # load data
-        self.vao = self.load_data()
-
+        # compile shaders
         self.program = self.compile_shaders(VERTEX_SHADER, FRAGMENT_SHADER)
         glUseProgram(self.program)
         glEnable(GL_PROGRAM_POINT_SIZE)
         glEnable(GL_DEPTH_TEST)
 
         # camera
-        mean_x = np.mean(self.pc.get_points_x())
-        mean_y = np.mean(self.pc.get_points_y())
-        mean_z = np.mean(self.pc.get_points_z())
+        min_x, max_x, min_y, max_y, min_z, max_z = self.tile_manager.bounds
+        mean_x = (min_x + max_x) / 2
+        mean_y = (min_y + max_y) / 2
+        mean_z = (min_z + max_z) / 2
 
         self.camera = Camera(Vector3([mean_x, mean_y, mean_z]))
 
@@ -194,9 +211,5 @@ class App:
         glfw.destroy_window(self.window)
         glfw.terminate()
 
-
-if __name__ == "__main__":
-    app = App()
-    app.run()
 
 # ruff: noqa: F405
