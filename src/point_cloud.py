@@ -251,8 +251,6 @@ class PointCloud:
         """
         orig_points_x = np.array(self.points_x)
         orig_points_y = np.array(self.points_y)
-        orig_points_z = np.array(self.points_z)
-        orig_points_class = np.array(self.points_class)
 
         # compute the bounding box of the point cloud
         # along x and y axes
