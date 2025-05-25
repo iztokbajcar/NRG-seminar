@@ -70,38 +70,69 @@ class TileManager:
         min_z = None
         max_z = None
 
-        for i in range(self.grid_size[0]):
-            row = []
-            for j in range(self.grid_size[1]):
-                # TODO: support for different LODs
-                path = os.path.join(
-                    self.tile_dir, f"{i}_{j}_lod{self.lod_count - 1}.laz"
-                )
-                if os.path.exists(path):
-                    tile = Tile(path)
-                    row.append(tile)
+        for lod_id in range(self.lod_count):
+            lod = []
+            for i in range(self.grid_size[0]):
+                row = []
+                for j in range(self.grid_size[1]):
+                    # TODO: support for different LODs
+                    path = os.path.join(self.tile_dir, f"{i}_{j}_lod{lod_id}.laz")
+                    if os.path.exists(path):
+                        tile = Tile(path)
+                        row.append(tile)
 
-                    # change bounds if needed
-                    if min_x is None or tile.bounds[0] < min_x:
-                        min_x = tile.bounds[0]
-                    if min_y is None or tile.bounds[2] < min_y:
-                        min_y = tile.bounds[2]
-                    if max_x is None or tile.bounds[1] > max_x:
-                        max_x = tile.bounds[1]
-                    if max_y is None or tile.bounds[3] > max_y:
-                        max_y = tile.bounds[3]
-                    if min_z is None or tile.bounds[4] < min_z:
-                        min_z = tile.bounds[4]
-                    if max_z is None or tile.bounds[5] > max_z:
-                        max_z = tile.bounds[5]
+                        # change bounds if needed
+                        if min_x is None or tile.bounds[0] < min_x:
+                            min_x = tile.bounds[0]
+                        if min_y is None or tile.bounds[2] < min_y:
+                            min_y = tile.bounds[2]
+                        if max_x is None or tile.bounds[1] > max_x:
+                            max_x = tile.bounds[1]
+                        if max_y is None or tile.bounds[3] > max_y:
+                            max_y = tile.bounds[3]
+                        if min_z is None or tile.bounds[4] < min_z:
+                            min_z = tile.bounds[4]
+                        if max_z is None or tile.bounds[5] > max_z:
+                            max_z = tile.bounds[5]
 
-            tiles.append(row)
+                lod.append(row)
+            tiles.append(lod)
         return tiles, (min_x, max_x, min_y, max_y, min_z, max_z)
 
+    def choose_lod(self, dist):
+        lod_distances = [((i + 1) ** 2) * 100 for i in range(self.lod_count)]
+
+        for i, d in enumerate(lod_distances):
+            if dist < d:
+                return i
+        return self.lod_count - 1
+
     def get_visible_tiles(self, cam_pos, cam_target, fov):
+        # returns a list of tiles that will need to be rendered
+
+        max_lod = len(self.tiles) - 1
+        max_lod_tiles = self.tiles[max_lod]
+
         visible_tiles = []
-        for row in self.tiles:
-            for tile in row:
-                if tile.is_visible(cam_pos, cam_target, fov):
-                    visible_tiles.append(tile)
+
+        for i in range(len(self.tiles[max_lod])):
+            for j in range(len(self.tiles[max_lod][i])):
+                tile = max_lod_tiles[i][j]
+
+                if not tile.is_visible(cam_pos, cam_target, fov):
+                    continue
+
+                # calculate distance from tne camera to the tile
+                # to determine which LOD to use
+                cx, cy, cz = cam_pos
+                x0, x1, y0, y1, z0, z1 = tile.bounds
+                tile_center = np.array([(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2])
+                dist = np.linalg.norm(tile_center - np.array([cx, cy, cz]))
+
+                lod_id = self.choose_lod(dist)
+
+                lod_tiles = max_lod_tiles if lod_id == max_lod else self.tiles[lod_id]
+                lod_tile = lod_tiles[i][j]
+                visible_tiles.append(lod_tile)
+
         return visible_tiles

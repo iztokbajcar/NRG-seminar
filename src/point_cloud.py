@@ -265,8 +265,8 @@ class PointCloud:
         # LOD x Y x X
         tiles = []
 
-        for lod in range(len(self.lods)):
-            pc = self.lods[lod]
+        for lod_id in range(len(self.lods)):
+            pc = self.lods[lod_id]
 
             points_x = np.array(pc.get_points_x())
             points_y = np.array(pc.get_points_y())
