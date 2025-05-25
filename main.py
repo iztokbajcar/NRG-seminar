@@ -7,6 +7,9 @@ import numpy as np
 import os
 
 # %%
+LOD_COUNT = 5
+
+# %%
 print(os.getcwd())
 pc = PointCloud.from_laz_file("data/ljubljanski_grad.las")
 # pc = PointCloud.from_laz_file("data/GK_462_100.laz")
@@ -44,7 +47,8 @@ print(pc.get_cluster_centers())
 print(pc.get_squared_distances())
 
 # %%
-ss.generate_lods(5)
+
+ss.generate_lods(LOD_COUNT)
 pc.get_lods()
 
 # %%
@@ -54,7 +58,7 @@ pc.save_as_tiles(10, 10, "data/ljubljanski_grad_tiles")
 # tile = PointCloud.from_laz_file("data/ljubljanski_grad_tiles/1_2.laz")
 
 # %%
-app = App("data/ljubljanski_grad_tiles", (10, 10))
+app = App("data/ljubljanski_grad_tiles", (10, 10), LOD_COUNT)
 app.run()
 
 # %%

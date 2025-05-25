@@ -10,8 +10,8 @@ from src.visualization.tile_manager import TileManager
 
 
 class App:
-    def __init__(self, tiles_dir, tiles_dim):
-        self.tile_manager = TileManager(tiles_dir, tiles_dim)
+    def __init__(self, tiles_dir, tiles_dim, lod_count):
+        self.tile_manager = TileManager(tiles_dir, tiles_dim, lod_count)
         self.tilevaos = []
         self.window = None
         self.vao = None

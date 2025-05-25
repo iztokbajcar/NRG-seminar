@@ -55,9 +55,10 @@ class Tile:
 
 
 class TileManager:
-    def __init__(self, tile_dir, grid_size):
+    def __init__(self, tile_dir, grid_size, lod_count):
         self.tile_dir = tile_dir
         self.grid_size = grid_size
+        self.lod_count = lod_count
         self.tiles, self.bounds = self._build_tiles()
 
     def _build_tiles(self):
@@ -72,7 +73,10 @@ class TileManager:
         for i in range(self.grid_size[0]):
             row = []
             for j in range(self.grid_size[1]):
-                path = os.path.join(self.tile_dir, f"{i}_{j}.laz")
+                # TODO: support for different LODs
+                path = os.path.join(
+                    self.tile_dir, f"{i}_{j}_lod{self.lod_count - 1}.laz"
+                )
                 if os.path.exists(path):
                     tile = Tile(path)
                     row.append(tile)
