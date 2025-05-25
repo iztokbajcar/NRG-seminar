@@ -44,6 +44,10 @@ print(pc.get_cluster_centers())
 print(pc.get_squared_distances())
 
 # %%
+ss.generate_lods(5)
+pc.get_lods()
+
+# %%
 pc.save_as_tiles(10, 10, "data/ljubljanski_grad_tiles")
 
 # %%

@@ -60,6 +60,7 @@ class PointCloud:
         self.labels = []
         self.cluster_centers = []
         self.squared_distances = []
+        self.lods = []
 
     @staticmethod
     def from_laz_file(filename, chunk_size=10_000):
@@ -174,6 +175,21 @@ class PointCloud:
         self.kmeans_cost = cost
         return cost
 
+    def copy(self):
+        new_pc = PointCloud(
+            self.points_x.copy(),
+            self.points_y.copy(),
+            self.points_z.copy(),
+            self.points_class.copy(),
+        )
+        new_pc.set_kmeans_cost(self.get_kmeans_cost())
+        new_pc.set_labels(self.get_labels().copy())
+        new_pc.set_cluster_centers(self.get_cluster_centers().copy())
+        new_pc.set_squared_distances(self.get_squared_distances().copy())
+        new_pc.set_lods(self.get_lods().copy())
+
+        return new_pc
+
     def get_points_x(self):
         return self.points_x
 
@@ -210,6 +226,15 @@ class PointCloud:
     def set_squared_distances(self, squared_distances):
         self.squared_distances = squared_distances
 
+    def get_lods(self):
+        return self.lods
+
+    def add_lod(self, lod):
+        self.lods.append(lod)
+
+    def set_lods(self, lods):
+        self.lods = lods
+
     def to_array(self):
         return np.array(list(zip(self.points_x, self.points_y, self.points_z)))
 
@@ -224,48 +249,61 @@ class PointCloud:
         Returns:
             list of PointCloud: A list of PointCloud objects, one per tile.
         """
-        points_x = np.array(self.points_x)
-        points_y = np.array(self.points_y)
-        points_z = np.array(self.points_z)
-        points_class = np.array(self.points_class)
+        orig_points_x = np.array(self.points_x)
+        orig_points_y = np.array(self.points_y)
+        orig_points_z = np.array(self.points_z)
+        orig_points_class = np.array(self.points_class)
 
         # compute the bounding box of the point cloud
         # along x and y axes
-        min_x, max_x = np.min(points_x), np.max(points_x)
-        min_y, max_y = np.min(points_y), np.max(points_y)
+        min_x, max_x = np.min(orig_points_x), np.max(orig_points_x)
+        min_y, max_y = np.min(orig_points_y), np.max(orig_points_y)
 
         # tile dimensions
         tile_width = (max_x - min_x) / nx
         tile_height = (max_y - min_y) / ny
 
+        # array of tiles
+        # LOD x Y x X
         tiles = []
 
-        for i in range(ny):
-            row = []
-            for j in range(nx):
-                x0 = min_x + j * tile_width  # low x edge
-                x1 = x0 + tile_width  # high x edge
-                y0 = min_y + i * tile_height
-                y1 = y0 + tile_height
+        for lod in range(len(self.lods)):
+            pc = self.lods[lod]
 
-                # get indices of points that are inside the tile
-                # (find indices for which all conditions are true)
-                in_tile = (
-                    (points_x >= x0)
-                    & (points_x < x1)
-                    & (points_y >= y0)
-                    & (points_y < y1)
-                )
+            points_x = np.array(pc.get_points_x())
+            points_y = np.array(pc.get_points_y())
+            points_z = np.array(pc.get_points_z())
+            points_class = np.array(pc.get_points_class())
 
-                if np.any(in_tile):
-                    tile_pc = PointCloud(
-                        points_x[in_tile],
-                        points_y[in_tile],
-                        points_z[in_tile],
-                        points_class[in_tile],
+            lod = []
+
+            for i in range(ny):
+                row = []
+                for j in range(nx):
+                    x0 = min_x + j * tile_width  # low x edge
+                    x1 = x0 + tile_width  # high x edge
+                    y0 = min_y + i * tile_height
+                    y1 = y0 + tile_height
+
+                    # get indices of points that are inside the tile
+                    # (find indices for which all conditions are true)
+                    in_tile = (
+                        (points_x >= x0)
+                        & (points_x < x1)
+                        & (points_y >= y0)
+                        & (points_y < y1)
                     )
-                    row.append(tile_pc)
-            tiles.append(row)
+
+                    if np.any(in_tile):
+                        tile_pc = PointCloud(
+                            points_x[in_tile],
+                            points_y[in_tile],
+                            points_z[in_tile],
+                            points_class[in_tile],
+                        )
+                        row.append(tile_pc)
+                lod.append(row)
+            tiles.append(lod)
 
         return np.array(tiles)
 
@@ -285,8 +323,9 @@ class PointCloud:
         tiles = self.split_into_tiles(nx, ny)
 
         # save each tile to a file
-        for i in range(tiles.shape[0]):
-            for j in range(tiles.shape[1]):
-                tile = tiles[i][j]
-                filename = f"{dir_name}/{i}_{j}.laz"
-                tile.export_to_laz_file(filename)
+        for lod in range(tiles.shape[0]):
+            for i in range(tiles.shape[1]):
+                for j in range(tiles.shape[2]):
+                    tile = tiles[lod][i][j]
+                    filename = f"{dir_name}/{i}_{j}_lod{lod}.laz"
+                    tile.export_to_laz_file(filename)

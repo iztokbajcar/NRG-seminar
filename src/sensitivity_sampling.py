@@ -59,3 +59,33 @@ class SensitivitySampling:
         W = [weights[tuple(p)] for p in S]
 
         return S, W
+
+    def compress(self, sample_size):
+        # returns a compressed version of the point cloud
+        # TODO: compression
+        return self.point_cloud.copy()
+
+    def generate_lods(self, num_lods):
+        # generate multiple levels of detail (LODs) for the point cloud
+        # num_lods is the number of all desired LODs including the original point cloud
+
+        # LOD num_lods is the original point cloud
+        # LOD num_lods - 1 is a smaller point cloud
+        # and so on until LOD 1 which is the smallest point cloud
+
+        # clear existing LODs
+        self.point_cloud.set_lods([])
+
+        n_points = len(self.point_cloud.get_points_x())
+        print(f"Number of all points: {n_points}")
+        lod_point_count_step = n_points // num_lods
+
+        for lod_level in range(0, num_lods - 1):
+            n_lod_points = (lod_level + 1) * lod_point_count_step
+            print(f"Generating LOD {lod_level} with {n_lod_points} points")
+
+            lod = self.compress(n_lod_points)
+            self.point_cloud.add_lod(lod)
+
+        # add the original point cloud as the last LOD
+        self.point_cloud.add_lod(self.point_cloud)
