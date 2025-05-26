@@ -11,6 +11,7 @@ class Tile:
         self.bounds = None
         self.vao = None
         self.n_points = None
+        self.lod = None
 
         self._load(filename)
 
@@ -79,6 +80,7 @@ class TileManager:
                     path = os.path.join(self.tile_dir, f"{i}_{j}_lod{lod_id}.laz")
                     if os.path.exists(path):
                         tile = Tile(path)
+                        tile.lod = lod_id
                         row.append(tile)
 
                         # change bounds if needed

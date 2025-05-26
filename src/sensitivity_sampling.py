@@ -65,17 +65,9 @@ class SensitivitySampling:
         # returns a compressed version of the point cloud
         # TODO: compression
         pc = self.point_cloud.copy()
-        # for i in range(sample_size):
-        #     # remove a random point
-        #     index = np.random.randint(0, len(pc.get_points_x()))
 
-        #     pc.points_x[index] = 0
-        #     pc.points_y[index] = 0
-        #     pc.points_z[index] = 0
-        #     pc.points_class[index] = 0
-
-        random_class = math.floor(sample_size / 100000)
-        pc.points_class = [random_class] * len(pc.get_points_x())
+        # random_class = math.floor(sample_size / 100000)
+        # pc.points_class = [random_class] * len(pc.get_points_x())
 
         return pc
 
@@ -99,6 +91,7 @@ class SensitivitySampling:
             print(f"Generating LOD {lod_level} with {n_lod_points} points")
 
             lod = self.compress(n_lod_points)
+            lod.lod = lod_level + 1
             self.point_cloud.add_lod(lod)
 
         # add the original point cloud as the last LOD

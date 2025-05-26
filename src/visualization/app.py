@@ -20,6 +20,9 @@ class App:
         self.last_mouse = None
         self.dragging = False
 
+        # whether to determine point color based on LOD instead of class
+        self.draw_lod = False
+
     def load_tile(self, tile):
         # vertex data will be stored in the following order:
         # 1. x1, x2, ..., xn
@@ -83,6 +86,16 @@ class App:
         glEnableVertexAttribArray(3)
         glVertexAttribIPointer(3, 1, GL_INT, 0, ctypes.c_void_p(0))
 
+        # lod attribute
+        if self.draw_lod:
+            lod_data = np.array([tile.lod] * n_points, dtype=np.int32)
+            vbo_lod = glGenBuffers(1)
+
+            glBindBuffer(GL_ARRAY_BUFFER, vbo_lod)
+            glBufferData(GL_ARRAY_BUFFER, lod_data.nbytes, lod_data, GL_STATIC_DRAW)
+            glEnableVertexAttribArray(4)
+            glVertexAttribIPointer(4, 1, GL_INT, 0, ctypes.c_void_p(0))
+
         # unbind
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
@@ -110,6 +123,7 @@ class App:
         view_loc = glGetUniformLocation(self.program, "uView")
         projection_loc = glGetUniformLocation(self.program, "uProjection")
         cam_pos_loc = glGetUniformLocation(self.program, "uCameraPos")
+        draw_lod_loc = glGetUniformLocation(self.program, "uDrawLOD")
 
         model = Matrix44.identity()
         view = self.camera.get_view_matrix()
@@ -122,6 +136,7 @@ class App:
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, view)
         glUniformMatrix4fv(projection_loc, 1, GL_FALSE, projection)
         glUniform3f(cam_pos_loc, cam_pos[0], cam_pos[1], cam_pos[2])
+        glUniform1i(draw_lod_loc, 1 if self.draw_lod else 0)
 
         visible_tiles = self.tile_manager.get_visible_tiles(
             cam_pos, cam_target, cam_fov
