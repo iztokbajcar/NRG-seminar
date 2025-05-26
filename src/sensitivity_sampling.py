@@ -1,5 +1,6 @@
 from sklearn.cluster import KMeans
 import numpy as np
+import math
 
 
 class SensitivitySampling:
@@ -63,7 +64,20 @@ class SensitivitySampling:
     def compress(self, sample_size):
         # returns a compressed version of the point cloud
         # TODO: compression
-        return self.point_cloud.copy()
+        pc = self.point_cloud.copy()
+        # for i in range(sample_size):
+        #     # remove a random point
+        #     index = np.random.randint(0, len(pc.get_points_x()))
+
+        #     pc.points_x[index] = 0
+        #     pc.points_y[index] = 0
+        #     pc.points_z[index] = 0
+        #     pc.points_class[index] = 0
+
+        random_class = math.floor(sample_size / 100000)
+        pc.points_class = [random_class] * len(pc.get_points_x())
+
+        return pc
 
     def generate_lods(self, num_lods):
         # generate multiple levels of detail (LODs) for the point cloud

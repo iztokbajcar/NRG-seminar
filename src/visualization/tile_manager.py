@@ -100,11 +100,12 @@ class TileManager:
         return tiles, (min_x, max_x, min_y, max_y, min_z, max_z)
 
     def choose_lod(self, dist):
-        lod_distances = [((i + 1) ** 2) * 100 for i in range(self.lod_count)]
+        lod_distances = [((i + 1) ** 2) * 10 for i in range(self.lod_count)]
 
         for i, d in enumerate(lod_distances):
             if dist < d:
                 return i
+
         return self.lod_count - 1
 
     def get_visible_tiles(self, cam_pos, cam_target, fov):
