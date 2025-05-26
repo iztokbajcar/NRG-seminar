@@ -1,6 +1,7 @@
 from sklearn.cluster import KMeans
 import numpy as np
-from point_cloud import PointCloud
+from src.point_cloud import PointCloud
+import math
 
 
 class SensitivitySampling:
@@ -65,7 +66,7 @@ class SensitivitySampling:
         # (2) Select the cheapest t clusters
         def cluster_cost(cluster):
             if len(cluster) == 0:
-                return float('inf')
+                return float("inf")
             center = np.mean(cluster, axis=0)
             return np.sum(np.linalg.norm(cluster - center, axis=1) ** 2)
 
@@ -74,7 +75,11 @@ class SensitivitySampling:
         not_C_cheap = clusters_sorted[t:]  # remaining clusters
 
         # Flatten not_C_cheap for processing
-        P_not = np.concatenate([c for c in not_C_cheap if len(c) > 0], axis=0) if not_C_cheap else np.empty((0, 3))
+        P_not = (
+            np.concatenate([c for c in not_C_cheap if len(c) > 0], axis=0)
+            if not_C_cheap
+            else np.empty((0, 3))
+        )
 
         # (3) Summarize each cheap cluster by its mean
         S = []
@@ -96,11 +101,14 @@ class SensitivitySampling:
         if len(P_not) > 0 and sample_size - t > 0:
             # Build a fake point cloud for the remaining points
             from point_cloud import PointCloud
+
             all_classes = np.array(self.point_cloud.get_points_class())
             # Find indices of P_not in P
             mask = np.any(np.all(P[:, None] == P_not[None, :], axis=2), axis=1)
             indices_not = np.where(mask)[0]
-            pc_not = PointCloud(P_not[:, 0], P_not[:, 1], P_not[:, 2], all_classes[indices_not])
+            pc_not = PointCloud(
+                P_not[:, 0], P_not[:, 1], P_not[:, 2], all_classes[indices_not]
+            )
             sampler_not = SensitivitySampling(pc_not, k=len(not_C_cheap))
             sampled_indices, W_not = sampler_not.sample(sample_size - t)
             S_not = P_not[sampled_indices]
@@ -158,6 +166,7 @@ class SensitivitySampling:
             print(f"Generating LOD {lod_level} with {n_lod_points} points")
 
             lod = self.compress(n_lod_points)
+            lod.lod = lod_level + 1
             self.point_cloud.add_lod(lod)
 
         # add the original point cloud as the last LOD

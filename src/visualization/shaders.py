@@ -5,12 +5,14 @@ layout (location = 0) in float aXPos;
 layout (location = 1) in float aYPos;
 layout (location = 2) in float aZPos;
 layout (location = 3) in int aClass;
+layout (location = 4) in int aLOD;
 out vec4 oColor;
 
 uniform mat4 uModel;
 uniform mat4 uView;
 uniform mat4 uProjection;
 uniform vec3 uCameraPos;
+uniform bool uDrawLOD;
 
 vec4 classToColor(int classID) {
     if (classID == 1) return vec4(1, 1, 1, 1);         // unclassified
@@ -33,7 +35,14 @@ void main()
     gl_PointSize = clamp(size, 2.0, 10.0);
 
     gl_Position = uProjection * uView * uModel * vec4(aXPos, aYPos, aZPos, 1.0);
-    oColor = classToColor(aClass);
+
+    if (uDrawLOD) {
+        // use classToColor to determine color based 
+        // on LOD instead of class
+        oColor = classToColor(aLOD);
+    } else {
+        oColor = classToColor(aClass);
+    }
 }
 """
 
