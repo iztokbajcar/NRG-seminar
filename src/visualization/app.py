@@ -35,6 +35,10 @@ class App:
 
         print("Loading tile...")
 
+        # if the points contained in the tile are not loaded, load them
+        if not tile.loaded:
+            tile.load()
+
         points_x = tile.pc.get_points_x()
         points_y = tile.pc.get_points_y()
         points_z = tile.pc.get_points_z()

@@ -2,10 +2,14 @@ import os
 import laspy
 import numpy as np
 from src.point_cloud import PointCloud
+from OpenGL.GL import glDeleteVertexArrays
 
 
 class Tile:
-    def __init__(self, filename):
+    def __init__(self, x, y, filename):
+        self.x = x
+        self.y = y
+        self.filename = filename
         self.loaded = False
         self.pc = None
         self.bounds = None
@@ -13,10 +17,32 @@ class Tile:
         self.n_points = None
         self.lod = None
 
-        self._load(filename)
+        self.load_bounds()
 
-    def _load(self, filename):
-        self.pc = PointCloud.from_laz_file(filename)
+    def get_x(self):
+        return self.x
+
+    def get_y(self):
+        return self.y
+
+    def get_lod(self):
+        return self.lod
+
+    def load_bounds(self):
+        # read bounds from header
+        with laspy.open(self.filename) as f:
+            header = f.header
+            self.bounds = (
+                header.min[0],
+                header.max[0],
+                header.min[1],
+                header.max[1],
+                header.min[2],
+                header.max[2],
+            )
+
+    def load(self):
+        self.pc = PointCloud.from_laz_file(self.filename)
 
         # determine bounds
         x_min = 0 if len(self.pc.points_x) == 0 else np.min(self.pc.points_x)
@@ -28,6 +54,17 @@ class Tile:
         self.bounds = (x_min, x_max, y_min, y_max, z_min, z_max)
 
         self.loaded = True
+
+    def unload(self):
+        if self.loaded:
+            self.pc = None
+            self.loaded = False
+
+            # delete the VAO
+            if self.vao is not None:
+                glDeleteVertexArrays(1, [self.vao])
+                self.vao = None
+                self.n_points = None
 
     def is_visible(self, cam_pos, cam_target, fov, max_distance=1000.0):
         cx, cy, cz = cam_pos
@@ -56,11 +93,28 @@ class Tile:
 
 
 class TileManager:
-    def __init__(self, tile_dir, grid_size, lod_count):
+    def __init__(self, tile_dir, grid_size, lod_count, preload_distance=1):
         self.tile_dir = tile_dir
         self.grid_size = grid_size
         self.lod_count = lod_count
+        self.preload_distance = preload_distance
+        self.visible_tiles = []
+        self.preloaded_tiles = []
+
+        # all tiles will be stored in the self.tiles array,
+        # but point data will be loaded only when needed
         self.tiles, self.bounds = self._build_tiles()
+
+    def _get_tile_filenames(self):
+        filenames = []
+
+        for lod_id in range(self.lod_count):
+            for i in range(self.grid_size[0]):
+                for j in range(self.grid_size[1]):
+                    path = os.path.join(self.tile_dir, f"{i}_{j}_lod{lod_id}.laz")
+                    filenames.append(path)
+
+        return filenames
 
     def _build_tiles(self):
         tiles = []
@@ -78,7 +132,7 @@ class TileManager:
                 for j in range(self.grid_size[1]):
                     path = os.path.join(self.tile_dir, f"{i}_{j}_lod{lod_id}.laz")
                     if os.path.exists(path):
-                        tile = Tile(path)
+                        tile = Tile(j, i, path)
                         tile.lod = lod_id
                         row.append(tile)
 
@@ -111,6 +165,50 @@ class TileManager:
 
         return self.lod_count - 1
 
+    def _update_memory(self, new_visible_tiles):
+        preloaded_tiles = []
+        visible_tiles = []
+
+        for tile in visible_tiles:
+            tile_y = tile.get_y()
+            tile_x = tile.get_x()
+            tile_lod = tile.get_lod()
+
+            # preload the neighbors if they are not already loaded
+            for di in range(-self.preload_distance, self.preload_distance + 1):
+                for dj in range(-self.preload_distance, self.preload_distance + 1):
+                    # skip the tile itself
+                    if di == 0 and dj == 0:
+                        continue
+
+                    neighbor_x = tile_x + dj
+                    neighbor_y = tile_y + di
+
+                    # get the neighboring tile object
+                    if (
+                        0 <= neighbor_x < self.grid_size[1]
+                        and 0 <= neighbor_y < self.grid_size[0]
+                    ):
+                        neighbor_tile = self.tiles[tile_lod][neighbor_y][neighbor_x]
+                        # mark tile for preloading
+                        if not neighbor_tile.loaded:
+                            preloaded_tiles.append(neighbor_tile)
+
+        # load tiles that need to be (pre)loaded
+        for tile in preloaded_tiles:
+            if not tile.loaded:
+                tile.load()
+                self.preloaded_tiles.append(tile)
+
+        # unload tiles that are not visible anymore
+        for tile in self.preloaded_tiles:
+            if tile not in new_visible_tiles and tile.loaded:
+                tile.unload()
+                self.visible_tiles.remove(tile)
+
+        self.visible_tiles = new_visible_tiles
+        self.preloaded_tiles = preloaded_tiles
+
     def get_visible_tiles(self, cam_pos, cam_target, fov):
         # returns a list of tiles that will need to be rendered
 
@@ -137,6 +235,10 @@ class TileManager:
 
                 lod_tiles = max_lod_tiles if lod_id == max_lod else self.tiles[lod_id]
                 lod_tile = lod_tiles[i][j]
+
+                # add the tile to the list of visible tiles
                 visible_tiles.append(lod_tile)
+
+        self._update_memory(visible_tiles)
 
         return visible_tiles
