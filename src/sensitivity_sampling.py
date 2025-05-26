@@ -158,7 +158,7 @@ class SensitivitySampling:
 
         n_points = len(self.point_cloud.get_points_x())
         print(f"Number of all points: {n_points}")
-        lod_point_count_step = n_points // (num_lods * 2) # remove 2x to remove more points
+        lod_point_count_step = n_points // (num_lods * 4) # remove 2x to remove more points
 
         for lod_level in range(0, num_lods - 1):
             n_lod_points = (lod_level + 1) * lod_point_count_step
