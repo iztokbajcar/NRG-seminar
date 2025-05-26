@@ -238,16 +238,18 @@ class PointCloud:
     def to_array(self):
         return np.array(list(zip(self.points_x, self.points_y, self.points_z)))
 
-    def split_into_tiles(self, nx, ny):
+    def save_as_tiles(self, nx, ny, dir_name):
         """
-        Splits the point cloud into a 2D grid of tiles across the XY plane.
+        Splits the point cloud into a 2D grid of tiles across the XY plane
+        and saves the tiles into the specified directory.
 
         Args:
             nx (int): Number of tiles along the X-axis.
             ny (int): Number of tiles along the Y-axis.
+            dir_name (str): The name of the directory to save the tiles in.
 
         Returns:
-            list of PointCloud: A list of PointCloud objects, one per tile.
+            list: A list of filenames of the saved tiles.
         """
         print("Calculating tile dimensions...")
         orig_points_x = np.array(self.points_x)
@@ -264,9 +266,9 @@ class PointCloud:
 
         print("Calculated tile dimensions.")
 
-        # array of tiles
-        # LOD x Y x X
-        tiles = []
+        # create the directory if it doesn't exist
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
 
         for lod_id in range(len(self.lods)):
             pc = self.lods[lod_id]
@@ -276,10 +278,7 @@ class PointCloud:
             points_z = np.array(pc.get_points_z())
             points_class = np.array(pc.get_points_class())
 
-            lod = []
-
             for i in range(ny):
-                row = []
                 for j in range(nx):
                     x0 = min_x + j * tile_width  # low x edge
                     x1 = x0 + tile_width  # high x edge
@@ -295,6 +294,7 @@ class PointCloud:
                         & (points_y < y1)
                     )
 
+                    tile_pc = None
                     if np.any(in_tile):
                         tile_pc = PointCloud(
                             points_x[in_tile],
@@ -302,38 +302,11 @@ class PointCloud:
                             points_z[in_tile],
                             points_class[in_tile],
                         )
-                        row.append(tile_pc)
                     else:
                         # there were no points in this tile
-                        row.append(PointCloud([], [], [], []))
+                        tile_pc = PointCloud([], [], [], [])
 
-                lod.append(row)
-            tiles.append(lod)
-            print(f"LOD {lod_id} done.")
+                    filename = f"{dir_name}/{i}_{j}_lod{lod_id}.laz"
+                    tile_pc.export_to_laz_file(filename)
 
-        print(len(tiles), len(tiles[0]), len(tiles[0][0]))
-
-        return np.array(tiles)
-
-    def save_as_tiles(self, nx, ny, dir_name):
-        """
-        Splits the point cloud into tiles, then saves them
-        into the given directory.
-
-        Args:
-            dir_name (str): The name of the directory to save the tiles in.
-        """
-        # create the directory if it doesn't exist
-        if not os.path.exists(dir_name):
-            os.makedirs(dir_name)
-
-        # split the point cloud into tiles
-        tiles = self.split_into_tiles(nx, ny)
-
-        # save each tile to a file
-        for lod in range(tiles.shape[0]):
-            for i in range(tiles.shape[1]):
-                for j in range(tiles.shape[2]):
-                    tile = tiles[lod][i][j]
-                    filename = f"{dir_name}/{i}_{j}_lod{lod}.laz"
-                    tile.export_to_laz_file(filename)
+        return os.listdir(dir_name)
