@@ -18,12 +18,12 @@ class Tile:
         self.pc = PointCloud.from_laz_file(filename)
 
         # determine bounds
-        x_min = np.min(self.pc.points_x)
-        x_max = np.max(self.pc.points_x)
-        y_min = np.min(self.pc.points_y)
-        y_max = np.max(self.pc.points_y)
-        z_min = np.min(self.pc.points_z)
-        z_max = np.max(self.pc.points_z)
+        x_min = 0 if len(self.pc.points_x) == 0 else np.min(self.pc.points_x)
+        x_max = 0 if len(self.pc.points_x) == 0 else np.max(self.pc.points_x)
+        y_min = 0 if len(self.pc.points_y) == 0 else np.min(self.pc.points_y)
+        y_max = 0 if len(self.pc.points_y) == 0 else np.max(self.pc.points_y)
+        z_min = 0 if len(self.pc.points_z) == 0 else np.min(self.pc.points_z)
+        z_max = 0 if len(self.pc.points_z) == 0 else np.max(self.pc.points_z)
         self.bounds = (x_min, x_max, y_min, y_max, z_min, z_max)
 
         self.loaded = True

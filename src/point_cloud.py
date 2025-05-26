@@ -112,9 +112,9 @@ class PointCloud:
         header = laspy.LasHeader(point_format=3, version="1.2")
         header.scales = [0.1, 0.1, 0.1]
         header.offsets = [
-            np.min(self.points_x),
-            np.min(self.points_y),
-            np.min(self.points_z),
+            0 if len(self.points_x) == 0 else np.min(self.points_x),
+            0 if len(self.points_x) == 0 else np.min(self.points_y),
+            0 if len(self.points_x) == 0 else np.min(self.points_z),
         ]
 
         # create a new laspy file
@@ -249,6 +249,7 @@ class PointCloud:
         Returns:
             list of PointCloud: A list of PointCloud objects, one per tile.
         """
+        print("Calculating tile dimensions...")
         orig_points_x = np.array(self.points_x)
         orig_points_y = np.array(self.points_y)
 
@@ -260,6 +261,8 @@ class PointCloud:
         # tile dimensions
         tile_width = (max_x - min_x) / nx
         tile_height = (max_y - min_y) / ny
+
+        print("Calculated tile dimensions.")
 
         # array of tiles
         # LOD x Y x X
@@ -300,8 +303,15 @@ class PointCloud:
                             points_class[in_tile],
                         )
                         row.append(tile_pc)
+                    else:
+                        # there were no points in this tile
+                        row.append(PointCloud([], [], [], []))
+
                 lod.append(row)
             tiles.append(lod)
+            print(f"LOD {lod_id} done.")
+
+        print(len(tiles), len(tiles[0]), len(tiles[0][0]))
 
         return np.array(tiles)
 
