@@ -1,7 +1,6 @@
 from sklearn.cluster import KMeans
 import numpy as np
 from src.point_cloud import PointCloud
-import math
 
 
 class SensitivitySampling:
