@@ -1,6 +1,10 @@
 from sklearn.cluster import KMeans
 import numpy as np
+<<<<<<< HEAD
 import math
+=======
+from point_cloud import PointCloud
+>>>>>>> 867591f (compress)
 
 
 class SensitivitySampling:
@@ -48,28 +52,23 @@ class SensitivitySampling:
         sampled_indices = np.random.choice(
             indices, size=sample_size, replace=True, p=p_vals
         )
-
-        S = P[sampled_indices]  # sampled coreset points
-
-        # assign weights: inverse of sampling probability × sample size
-        weights = {}
-        for i in sampled_indices:
-            key = tuple(P[i])
-            weights[key] = 1 / (sample_size * dist[i])
-
-        W = [weights[tuple(p)] for p in S]
-
-        return S, W
+        W = [1 / (sample_size * dist[i]) for i in sampled_indices]
+        return sampled_indices, W
 
     def compress(self, sample_size):
-        # returns a compressed version of the point cloud
-        # TODO: compression
-        pc = self.point_cloud.copy()
+        # Use the sample method to get sampled points and weights
+        sampled_indices, W = self.sample(sample_size)
+        P = self.point_cloud.to_array()
+        all_classes = np.array(self.point_cloud.get_points_class())
 
-        # random_class = math.floor(sample_size / 100000)
-        # pc.points_class = [random_class] * len(pc.get_points_x())
+        S = P[sampled_indices]
+        sampled_classes = all_classes[sampled_indices]
 
-        return pc
+        x = S[:, 0]
+        y = S[:, 1]
+        z = S[:, 2]
+
+        return PointCloud(x, y, z, sampled_classes)
 
     def generate_lods(self, num_lods):
         # generate multiple levels of detail (LODs) for the point cloud
