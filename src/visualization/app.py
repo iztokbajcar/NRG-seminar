@@ -90,14 +90,13 @@ class App:
         glVertexAttribIPointer(3, 1, GL_INT, 0, ctypes.c_void_p(0))
 
         # lod attribute
-        if self.draw_lod:
-            lod_data = np.array([tile.lod] * n_points, dtype=np.int32)
-            vbo_lod = glGenBuffers(1)
+        lod_data = np.array([tile.lod] * n_points, dtype=np.int32)
+        vbo_lod = glGenBuffers(1)
 
-            glBindBuffer(GL_ARRAY_BUFFER, vbo_lod)
-            glBufferData(GL_ARRAY_BUFFER, lod_data.nbytes, lod_data, GL_STATIC_DRAW)
-            glEnableVertexAttribArray(4)
-            glVertexAttribIPointer(4, 1, GL_INT, 0, ctypes.c_void_p(0))
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_lod)
+        glBufferData(GL_ARRAY_BUFFER, lod_data.nbytes, lod_data, GL_STATIC_DRAW)
+        glEnableVertexAttribArray(4)
+        glVertexAttribIPointer(4, 1, GL_INT, 0, ctypes.c_void_p(0))
 
         # unbind
         glBindBuffer(GL_ARRAY_BUFFER, 0)
