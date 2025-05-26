@@ -23,6 +23,9 @@ class App:
         # whether to determine point color based on LOD instead of class
         self.draw_lod = False
 
+    def toggle_draw_lod(self):
+        self.draw_lod = not self.draw_lod
+
     def load_tile(self, tile):
         # vertex data will be stored in the following order:
         # 1. x1, x2, ..., xn
@@ -169,6 +172,10 @@ class App:
         if getattr(self, "dragging", False):
             self.camera.rotate(dx, dy)
 
+    def key_callback(self, window, key, scancode, action, mods):
+        if key == glfw.KEY_L and action == glfw.RELEASE:
+            self.toggle_draw_lod()
+
     def scroll_callback(self, window, xoffset, yoffset):
         self.camera.zoom(yoffset * 10)
 
@@ -212,6 +219,7 @@ class App:
         glfw.set_cursor_pos_callback(self.window, self.mouse_callback)
         glfw.set_scroll_callback(self.window, self.scroll_callback)
         glfw.set_mouse_button_callback(self.window, self.mouse_button_callback)
+        glfw.set_key_callback(self.window, self.key_callback)
         glfw.set_framebuffer_size_callback(self.window, self.resize_callback)
 
         print("Entering render loop")

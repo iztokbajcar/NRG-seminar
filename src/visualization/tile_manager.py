@@ -76,7 +76,6 @@ class TileManager:
             for i in range(self.grid_size[0]):
                 row = []
                 for j in range(self.grid_size[1]):
-                    # TODO: support for different LODs
                     path = os.path.join(self.tile_dir, f"{i}_{j}_lod{lod_id}.laz")
                     if os.path.exists(path):
                         tile = Tile(path)
