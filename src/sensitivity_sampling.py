@@ -1,6 +1,7 @@
 from sklearn.cluster import KMeans
 import numpy as np
 from src.point_cloud import PointCloud
+import math
 
 
 class SensitivitySampling:
@@ -145,6 +146,15 @@ class SensitivitySampling:
         z = S[:, 2]
         return PointCloud(x, y, z, sampled_classes)
 
+    def get_n_points_for_lod(self, num_lods, lod_level, n_points):
+        min_points = n_points // 100
+        if lod_level == 0:
+            return min_points
+        else:
+            diff = n_points - min_points
+            divisor = diff / (2 * lod_level)
+            return int(n_points - divisor)
+
     def generate_lods(self, num_lods):
         # generate multiple levels of detail (LODs) for the point cloud
         # num_lods is the number of all desired LODs including the original point cloud
@@ -158,10 +168,9 @@ class SensitivitySampling:
 
         n_points = len(self.point_cloud.get_points_x())
         print(f"Number of all points: {n_points}")
-        lod_point_count_step = n_points // (num_lods * 4) # remove 2x to remove more points
 
         for lod_level in range(0, num_lods - 1):
-            n_lod_points = (lod_level + 1) * lod_point_count_step
+            n_lod_points = self.get_n_points_for_lod(num_lods, lod_level, n_points)
             print(f"Generating LOD {lod_level} with {n_lod_points} points")
 
             lod = self.compress(n_lod_points)
