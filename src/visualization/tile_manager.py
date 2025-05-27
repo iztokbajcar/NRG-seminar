@@ -173,7 +173,7 @@ class TileManager:
 
     def choose_lod(self, dist):
         lod_distances = [
-            (((self.lod_count - i) + 1) ** 2) * 10 for i in range(self.lod_count)
+            (((self.lod_count - i) + 1) ** 2) * 50 for i in range(self.lod_count)
         ]
 
         for i, d in enumerate(lod_distances):

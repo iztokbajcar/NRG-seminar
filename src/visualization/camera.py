@@ -13,7 +13,7 @@ class Camera:
         self.aspect_ratio = 800 / 600
         self.fov = fov
         self.near = 0.1
-        self.far = 1000.0
+        self.far = 10000.0
 
     def get_position(self):
         #  spherical coords to cartesian
