@@ -26,7 +26,7 @@ class App:
     def toggle_draw_lod(self):
         self.draw_lod = not self.draw_lod
 
-    def load_tile(self, tile):
+    def load_tile_data_from_memory(self, tile):
         # vertex data will be stored in the following order:
         # 1. x1, x2, ..., xn
         # 2. y1, y2, ..., yn
@@ -35,9 +35,17 @@ class App:
 
         print("Loading tile...")
 
-        # if the points contained in the tile are not loaded, load them
+        # if the points contained in the tile are not loaded,
+        # request loading and return
         if not tile.loaded:
-            tile.load()
+            if tile not in self.tile_manager.load_queue.queue:
+                self.tile_manager.load_queue.put(tile)
+
+            return False  # signal failure - the tile has to be loaded from disk
+
+    def upload_tile_data_to_gpu(self, tile):
+        if not tile.loaded:
+            return
 
         points_x = tile.pc.get_points_x()
         points_y = tile.pc.get_points_y()
@@ -110,7 +118,22 @@ class App:
         tile.vao = vao
         tile.n_points = n_points
 
-        print(f"Tile loaded, number of points: {n_points}")
+        print(f"Tile loaded onto GPU, number of points: {n_points}")
+
+    def process_gpu_load_queue(self, tile_limit):
+        upload_count = 0
+
+        # load tile_limit tiles from the queue
+        # (loading too many tiles would slow down the rendering)
+        while (
+            not self.tile_manager.gpu_load_queue.empty() and upload_count < tile_limit
+        ):
+            tile = self.tile_manager.gpu_load_queue.get_nowait()
+
+            if tile.vao is None:
+                self.upload_tile_data_to_gpu(tile)
+
+            upload_count += 1
 
     def compile_shaders(self, vertex_source, fragment_source):
         vertex_shader = shaders.compileShader(vertex_source, GL_VERTEX_SHADER)
@@ -151,13 +174,21 @@ class App:
 
         # render visible tiles
         for tile in visible_tiles:
-            # load tile and construct VAO if necessary
+            # request tile loading if necessary
             if tile.vao is None:
-                self.load_tile(tile)
+                # try to load the tile data from memory
+                loaded = self.load_tile_data_from_memory(tile)
+
+                # if it failed, the tile is not in memory,
+                # so skip it (wait for it to load form disk)
+                if not loaded:
+                    continue
 
             glBindVertexArray(tile.vao)
             glDrawArrays(GL_POINTS, 0, tile.n_points)
             glBindVertexArray(0)
+
+        self.process_gpu_load_queue(tile_limit=1)
 
     def mouse_button_callback(self, window, button, action, mods):
         if button == glfw.MOUSE_BUTTON_LEFT:

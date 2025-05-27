@@ -1,6 +1,8 @@
 import os
 import laspy
 import numpy as np
+from queue import Queue
+from threading import Thread
 from src.point_cloud import PointCloud
 from OpenGL.GL import glDeleteVertexArrays
 
@@ -100,10 +102,25 @@ class TileManager:
         self.preload_distance = preload_distance
         self.visible_tiles = []
         self.preloaded_tiles = []
+        self.load_queue = Queue()  # for loading points from disk
+        self.gpu_load_queue = Queue()  # for sending tiles to the GPU
+
+        # add a separate thread for loading tiles
+        self.loader_thread = Thread(target=self._tile_loader, daemon=True)
+        self.loader_thread.start()
 
         # all tiles will be stored in the self.tiles array,
         # but point data will be loaded only when needed
         self.tiles, self.bounds = self._build_tiles()
+
+    def _tile_loader(self):
+        while True:
+            # get the next tile that needs to be loaded
+            # and load it if needed
+            tile = self.load_queue.get()
+            if not tile.loaded:
+                print(f"Loading tile {tile.filename}...")
+                tile.load()
 
     def _get_tile_filenames(self):
         filenames = []
@@ -167,9 +184,8 @@ class TileManager:
 
     def _update_memory(self, new_visible_tiles):
         preloaded_tiles = []
-        visible_tiles = []
 
-        for tile in visible_tiles:
+        for tile in new_visible_tiles:
             tile_y = tile.get_y()
             tile_x = tile.get_x()
             tile_lod = tile.get_lod()
@@ -194,17 +210,20 @@ class TileManager:
                         if not neighbor_tile.loaded:
                             preloaded_tiles.append(neighbor_tile)
 
-        # load tiles that need to be (pre)loaded
+        # put tiles that need to be (pre)loaded into the load queue
         for tile in preloaded_tiles:
-            if not tile.loaded:
-                tile.load()
-                self.preloaded_tiles.append(tile)
+            if not tile.loaded and tile not in self.load_queue.queue:
+                self.load_queue.put(tile)
 
         # unload tiles that are not visible anymore
         for tile in self.preloaded_tiles:
             if tile not in new_visible_tiles and tile.loaded:
                 tile.unload()
-                self.visible_tiles.remove(tile)
+
+        # load visible tiles onto the GPU
+        for tile in new_visible_tiles:
+            if tile.vao is None and tile not in self.gpu_load_queue.queue:
+                self.gpu_load_queue.put(tile)
 
         self.visible_tiles = new_visible_tiles
         self.preloaded_tiles = preloaded_tiles
