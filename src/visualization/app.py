@@ -33,8 +33,6 @@ class App:
         # 3. z1, z2, ..., zn
         # 4. class1, class2, ..., classn
 
-        print("Loading tile...")
-
         # if the points contained in the tile are not loaded,
         # request loading and return
         if not tile.loaded:
@@ -160,6 +158,7 @@ class App:
         cam_pos = self.camera.get_position()
         cam_target = self.camera.get_target()
         cam_fov = self.camera.get_fov()
+        cam_far = self.camera.get_far()
 
         glUniformMatrix4fv(model_loc, 1, GL_FALSE, model)
         glUniformMatrix4fv(view_loc, 1, GL_FALSE, view)
@@ -168,7 +167,7 @@ class App:
         glUniform1i(draw_lod_loc, 1 if self.draw_lod else 0)
 
         visible_tiles = self.tile_manager.get_visible_tiles(
-            cam_pos, cam_target, cam_fov
+            cam_pos, cam_target, cam_far, cam_fov
         )
         # print(f"Visible tiles: {len(visible_tiles)}")
 

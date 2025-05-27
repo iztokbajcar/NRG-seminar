@@ -183,7 +183,7 @@ class TileManager:
         return self.lod_count - 1
 
     def _update_memory(self, new_visible_tiles):
-        preloaded_tiles = []
+        new_preloaded_tiles = []
 
         for tile in new_visible_tiles:
             tile_y = tile.get_y()
@@ -208,27 +208,29 @@ class TileManager:
                         neighbor_tile = self.tiles[tile_lod][neighbor_y][neighbor_x]
                         # mark tile for preloading
                         if not neighbor_tile.loaded:
-                            preloaded_tiles.append(neighbor_tile)
+                            new_preloaded_tiles.append(neighbor_tile)
 
         # put tiles that need to be (pre)loaded into the load queue
-        for tile in preloaded_tiles:
+        for tile in new_preloaded_tiles:
             if not tile.loaded and tile not in self.load_queue.queue:
                 self.load_queue.put(tile)
-
-        # unload tiles that are not visible anymore
-        for tile in self.preloaded_tiles:
-            if tile not in new_visible_tiles and tile.loaded:
-                tile.unload()
 
         # load visible tiles onto the GPU
         for tile in new_visible_tiles:
             if tile.vao is None and tile not in self.gpu_load_queue.queue:
                 self.gpu_load_queue.put(tile)
 
-        self.visible_tiles = new_visible_tiles
-        self.preloaded_tiles = preloaded_tiles
+        self.visible_tiles = list(set(self.visible_tiles + new_visible_tiles))
+        self.preloaded_tiles = list(set(self.preloaded_tiles + new_preloaded_tiles))
 
-    def get_visible_tiles(self, cam_pos, cam_target, fov):
+        # unload tiles that are not visible anymore
+        for tile in self.preloaded_tiles:
+            if tile not in new_visible_tiles and tile.loaded:
+                print(f"Unloading tile {tile.filename}...")
+                tile.unload()
+                self.preloaded_tiles.remove(tile)
+
+    def get_visible_tiles(self, cam_pos, cam_target, cam_far, fov):
         # returns a list of tiles that will need to be rendered
 
         max_lod = len(self.tiles) - 1
@@ -240,7 +242,7 @@ class TileManager:
             for j in range(len(self.tiles[max_lod][i])):
                 tile = max_lod_tiles[i][j]
 
-                if not tile.is_visible(cam_pos, cam_target, fov):
+                if not tile.is_visible(cam_pos, cam_target, fov, max_distance=cam_far):
                     continue
 
                 # calculate distance from tne camera to the tile

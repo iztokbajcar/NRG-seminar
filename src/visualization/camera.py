@@ -38,6 +38,9 @@ class Camera:
     def set_fov(self, fov):
         self.fov = fov
 
+    def get_far(self):
+        return self.far
+
     def get_aspect_ratio(self):
         return self.aspect_ratio
 
