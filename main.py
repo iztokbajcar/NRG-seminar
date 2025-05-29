@@ -9,9 +9,12 @@ import os
 # %%
 LOD_COUNT = 5
 
+MAP_NAME = "ljubljana.laz"
+# MAP_NAME = "ljubljanski_grad.las"
+
 # %%
 print(os.getcwd())
-pc = PointCloud.from_laz_file("data/ljubljanski_grad.las")
+pc = PointCloud.from_laz_file(f"data/{MAP_NAME}")
 print(f"{len(pc.points_x)} points")
 
 # %%
@@ -50,13 +53,17 @@ ss.generate_lods(LOD_COUNT)
 pc.get_lods()
 
 # %%
-pc.save_as_tiles(10, 10, "data/ljubljanski_grad_tiles")
+
+map_name_no_ext = MAP_NAME.replace('.laz', '').replace('.las', '')
+tiles_dir = f"data/{map_name_no_ext}_tiles"
+
+pc.save_as_tiles(10, 10, tiles_dir)
 
 # %%
 # tile = PointCloud.from_laz_file("data/ljubljanski_grad_tiles/1_2.laz")
 
 # %%
-app = App("data/ljubljanski_grad_tiles", (10, 10), LOD_COUNT)
+app = App(tiles_dir, (10, 10), LOD_COUNT)
 app.run()
 
 # %%

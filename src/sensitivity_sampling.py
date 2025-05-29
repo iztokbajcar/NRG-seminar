@@ -146,14 +146,58 @@ class SensitivitySampling:
         z = S[:, 2]
         return PointCloud(x, y, z, sampled_classes)
 
-    def get_n_points_for_lod(self, num_lods, lod_level, n_points):
-        min_points = n_points // 100
-        if lod_level == 0:
-            return min_points
+    
+    def get_n_points_for_lod(self, num_lods, lod_level, n_points, func="exponential", lower_bound_compression=0.005, upper_bound_compression=0.7):
+        min_point_count = n_points * lower_bound_compression
+        max_point_count = n_points * upper_bound_compression
+        if (func == "linear"):
+            # Linear interpolation between min and max point count
+            if num_lods == 1:
+                return int(max_point_count)
+            step = (max_point_count - min_point_count) / (num_lods - 1)
+            n_lod_points = min_point_count + step * lod_level
+            return int(round(n_lod_points))
+        elif (func == "logarithmic"):
+            # Logarithmic interpolation between min and max point count
+            if num_lods == 1:
+                return int(max_point_count)
+            # Avoid log(0) by shifting lod_level by 1
+            log_min = math.log(1)
+            log_max = math.log(num_lods)
+            log_lod = math.log(lod_level + 1)
+            n_lod_points = min_point_count + (max_point_count - min_point_count) * (log_lod - log_min) / (log_max - log_min)
+            return int(round(n_lod_points))
+        elif (func == "exponential"):
+            # Exponential interpolation between min and max point count
+            if num_lods == 1:
+                return int(max_point_count)
+            exp_min = 1
+            exp_max = math.exp(num_lods - 1)
+            exp_lod = math.exp(lod_level)
+            n_lod_points = min_point_count + (max_point_count - min_point_count) * (exp_lod - exp_min) / (exp_max - exp_min)
+            return int(round(n_lod_points))
+        elif (func == "logarithmic2"):
+            # Steeper logarithmic interpolation between min and max point count
+            if num_lods == 1:
+                return int(max_point_count)
+            # Use a steeper log by multiplying the log argument
+            log_factor = 3.0  # Increase for steeper curve
+            log_min = math.log(1)
+            log_max = math.log(num_lods) * log_factor
+            log_lod = math.log(lod_level + 1) * log_factor
+            n_lod_points = min_point_count + (max_point_count - min_point_count) * (log_lod - log_min) / (log_max - log_min)
+            return int(round(n_lod_points))
+        elif (func == "exponential2"):
+            # Less steep exponential interpolation between min and max point count
+            if num_lods == 1:
+                return int(max_point_count)
+            exp_min = 1
+            exp_max = math.exp((num_lods - 1) / 2)  # Use sqrt for less steepness
+            exp_lod = math.exp(lod_level / 2)
+            n_lod_points = min_point_count + (max_point_count - min_point_count) * (exp_lod - exp_min) / (exp_max - exp_min)
+            return int(round(n_lod_points))
         else:
-            diff = n_points - min_points
-            divisor = diff / (2 * lod_level)
-            return int(n_points - divisor)
+            raise ValueError(f"Invalid function: {func}")
 
     def generate_lods(self, num_lods):
         # generate multiple levels of detail (LODs) for the point cloud
@@ -169,7 +213,7 @@ class SensitivitySampling:
         n_points = len(self.point_cloud.get_points_x())
         print(f"Number of all points: {n_points}")
 
-        for lod_level in range(0, num_lods - 1):
+        for lod_level in range(0, num_lods):
             n_lod_points = self.get_n_points_for_lod(num_lods, lod_level, n_points)
             print(f"Generating LOD {lod_level} with {n_lod_points} points")
 
@@ -177,5 +221,3 @@ class SensitivitySampling:
             lod.lod = lod_level + 1
             self.point_cloud.add_lod(lod)
 
-        # add the original point cloud as the last LOD
-        self.point_cloud.add_lod(self.point_cloud)
