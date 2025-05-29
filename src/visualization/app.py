@@ -77,9 +77,9 @@ class App:
         n_points = len(points_x)
 
         # All attributes as float32 for OpenGL 2.1
-        pos_buffer_data = np.concatenate([
-            points_x, points_y, points_z
-        ], dtype=np.float32)
+        pos_buffer_data = np.concatenate(
+            [points_x, points_y, points_z], dtype=np.float32
+        )
         class_buffer_data = np.array(points_class, dtype=np.float32)  # float!
         lod_data = np.array([float(tile.lod)] * n_points, dtype=np.float32)  # float!
 
@@ -90,10 +90,14 @@ class App:
 
         # Upload position data (x, y, z as separate attributes)
         glBindBuffer(GL_ARRAY_BUFFER, vbo_pos)
-        glBufferData(GL_ARRAY_BUFFER, pos_buffer_data.nbytes, pos_buffer_data, GL_STATIC_DRAW)
+        glBufferData(
+            GL_ARRAY_BUFFER, pos_buffer_data.nbytes, pos_buffer_data, GL_STATIC_DRAW
+        )
         # Upload class data
         glBindBuffer(GL_ARRAY_BUFFER, vbo_class)
-        glBufferData(GL_ARRAY_BUFFER, class_buffer_data.nbytes, class_buffer_data, GL_STATIC_DRAW)
+        glBufferData(
+            GL_ARRAY_BUFFER, class_buffer_data.nbytes, class_buffer_data, GL_STATIC_DRAW
+        )
         # Upload LOD data
         glBindBuffer(GL_ARRAY_BUFFER, vbo_lod)
         glBufferData(GL_ARRAY_BUFFER, lod_data.nbytes, lod_data, GL_STATIC_DRAW)
@@ -120,7 +124,7 @@ class App:
         ):
             tile = self.tile_manager.gpu_load_queue.get_nowait()
 
-            if not hasattr(tile, 'vbo_pos') or tile.vbo_pos is None:
+            if not hasattr(tile, "vbo_pos") or tile.vbo_pos is None:
                 self.upload_tile_data_to_gpu(tile)
 
             upload_count += 1
@@ -159,12 +163,12 @@ class App:
         glUniform1i(draw_lod_loc, 1 if self.draw_lod else 0)
 
         visible_tiles = self.tile_manager.get_visible_tiles(
-            cam_pos, cam_target, cam_far, cam_fov
+            cam_pos, cam_target, cam_far, cam_fov + 5
         )
         # print(f"Visible tiles: {len(visible_tiles)}")
 
         for tile in visible_tiles:
-            if not hasattr(tile, 'vbo_pos') or tile.vbo_pos is None:
+            if not hasattr(tile, "vbo_pos") or tile.vbo_pos is None:
                 loaded = self.load_tile_data_from_memory(tile)
                 if not loaded:
                     continue
@@ -180,19 +184,34 @@ class App:
             # Position (x, y, z as separate attributes)
             glBindBuffer(GL_ARRAY_BUFFER, tile.vbo_pos)
             glEnableVertexAttribArray(0)
-            glVertexAttribPointer(xatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+            glVertexAttribPointer(
+                xatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)
+            )
             glEnableVertexAttribArray(1)
-            glVertexAttribPointer(yatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(n_points * 4))
+            glVertexAttribPointer(
+                yatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(n_points * 4)
+            )
             glEnableVertexAttribArray(2)
-            glVertexAttribPointer(zatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(2 * n_points * 4))
+            glVertexAttribPointer(
+                zatriblocation,
+                1,
+                GL_FLOAT,
+                GL_FALSE,
+                0,
+                ctypes.c_void_p(2 * n_points * 4),
+            )
             # Class
             glBindBuffer(GL_ARRAY_BUFFER, tile.vbo_class)
             glEnableVertexAttribArray(3)
-            glVertexAttribPointer(classatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+            glVertexAttribPointer(
+                classatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)
+            )
             # LOD
             glBindBuffer(GL_ARRAY_BUFFER, tile.vbo_lod)
             glEnableVertexAttribArray(4)
-            glVertexAttribPointer(lodatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+            glVertexAttribPointer(
+                lodatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0)
+            )
 
             glDrawArrays(GL_POINTS, 0, n_points)
 
