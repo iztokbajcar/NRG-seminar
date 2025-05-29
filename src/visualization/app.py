@@ -19,6 +19,15 @@ class App:
         self.n_points = None
         self.last_mouse = None
         self.dragging = False
+        self.panning = {
+            glfw.KEY_W: False,
+            glfw.KEY_S: False,
+            glfw.KEY_A: False,
+            glfw.KEY_D: False,
+            glfw.KEY_SPACE: False,
+            glfw.KEY_LEFT_SHIFT: False,
+        }
+        self.pan_sensitivity = 1
 
         # whether to determine point color based on LOD instead of class
         self.draw_lod = False
@@ -209,12 +218,40 @@ class App:
         if key == glfw.KEY_L and action == glfw.RELEASE:
             self.toggle_draw_lod()
 
+        # panning
+        if key in self.panning:
+            # if the key is released, set to False
+            # if the key is pressed or held down, set to or keep at True
+            self.panning[key] = action != glfw.RELEASE
+
     def scroll_callback(self, window, xoffset, yoffset):
         self.camera.zoom(yoffset * 10)
 
     def resize_callback(self, window, width, height):
         glViewport(0, 0, width, height)
         self.camera.set_aspect_ratio(width / height)
+
+    def handle_panning(self):
+        dx = 0
+        dy = 0
+        dz = 0
+
+        if self.panning[glfw.KEY_W]:
+            dz -= 1
+        if self.panning[glfw.KEY_S]:
+            dz += 1
+        if self.panning[glfw.KEY_A]:
+            dx -= 1
+        if self.panning[glfw.KEY_D]:
+            dx += 1
+        if self.panning[glfw.KEY_SPACE]:
+            dy += 1
+        if self.panning[glfw.KEY_LEFT_SHIFT]:
+            dy -= 1
+
+        # pan if necessray
+        if dx != 0 or dy != 0 or dz != 0:
+            self.camera.pan(dx, dy, dz, sensitivity=self.pan_sensitivity)
 
     def run(self):
         # initialize GLFW
@@ -260,6 +297,7 @@ class App:
         while not glfw.window_should_close(self.window):
             glfw.poll_events()
 
+            self.handle_panning()
             self.render()
 
             glfw.swap_buffers(self.window)

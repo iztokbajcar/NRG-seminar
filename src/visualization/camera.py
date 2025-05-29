@@ -66,8 +66,26 @@ class Camera:
         self.distance -= delta * sensitivity
         self.distance = max(0.1, self.distance)
 
-    def pan(self, dx, dy, sensitivity=0.01):
-        # Simple pan along screen space X/Y
-        right = Vector3([1, 0, 0])
-        up = Vector3([0, 1, 0])
-        self.target += -dx * sensitivity * right + dy * sensitivity * up
+    def pan(self, dx, dy, dz, sensitivity=0.01):
+        yaw = math.radians(self.yaw)
+        pitch = math.radians(self.pitch)
+
+        # convert from world to camera coordinates
+        # so that panning is relative to camera orientation
+        forward = Vector3(
+            [
+                math.cos(pitch) * math.sin(yaw),
+                math.sin(pitch),
+                math.cos(pitch) * math.cos(yaw),
+            ]
+        )
+        forward = forward.normalized
+
+        world_up = Vector3([0, 1, 0])
+        right = forward.cross(world_up).normalized
+        up = right.cross(forward).normalized
+        self.target += (
+            -dx * sensitivity * right
+            + dy * sensitivity * up
+            + dz * sensitivity * forward
+        )
