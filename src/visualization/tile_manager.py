@@ -185,6 +185,7 @@ class TileManager:
 
     def _update_memory(self, new_visible_tiles):
         new_preloaded_tiles = []
+        max_lod_diff = 2  # maximum LOD difference for preloading and unloading
 
         for tile in new_visible_tiles:
             tile_y = tile.get_y()
@@ -213,19 +214,17 @@ class TileManager:
 
                         # also preload the more detailed and less detailed
                         # versions of the tile
-                        if tile_lod > 0:
-                            less_detailed_tile = self.tiles[tile_lod - 1][neighbor_y][
-                                neighbor_x
-                            ]
-                            if not less_detailed_tile.loaded:
-                                new_preloaded_tiles.append(less_detailed_tile)
+                        for lod_diff in range(-max_lod_diff, max_lod_diff + 1):
+                            if lod_diff == 0:
+                                continue
 
-                        if tile_lod < self.lod_count - 1:
-                            more_detailed_tile = self.tiles[tile_lod + 1][neighbor_y][
-                                neighbor_x
-                            ]
-                            if not more_detailed_tile.loaded:
-                                new_preloaded_tiles.append(more_detailed_tile)
+                            new_lod = tile_lod + lod_diff
+                            if new_lod >= 0 and new_lod < self.lod_count:
+                                new_lod_tile = self.tiles[new_lod][neighbor_y][
+                                    neighbor_x
+                                ]
+                                if not new_lod_tile.loaded:
+                                    new_preloaded_tiles.append(new_lod_tile)
 
         # put tiles that need to be (pre)loaded into the load queue
         for tile in new_preloaded_tiles:
@@ -257,7 +256,7 @@ class TileManager:
                 if (
                     visible_tile.get_x() == tile_x
                     and visible_tile.get_y() == tile_y
-                    and abs(visible_tile.get_lod() - tile_lod) >= 3
+                    and abs(visible_tile.get_lod() - tile_lod) > max_lod_diff
                 ):
                     unload = True
                     break
