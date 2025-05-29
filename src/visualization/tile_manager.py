@@ -239,38 +239,32 @@ class TileManager:
         self.visible_tiles = list(set(self.visible_tiles + new_visible_tiles))
         self.preloaded_tiles = list(set(self.preloaded_tiles + new_preloaded_tiles))
 
-        # unload tiles that are not visible anymore
-        for tile in self.preloaded_tiles:
-            if tile not in new_visible_tiles and tile.loaded:
-                # check if the more detailed version of the tile or
-                # the less detailed version are still visible
-                # if not, unload the tile, otherwise keep it loaded
-                tile_x = tile.get_x()
-                tile_y = tile.get_y()
-                tile_lod = tile.get_lod()
-                more_detailed_visible = False
-                less_detailed_visible = False
-                more_detailed_tile = None
-                less_detailed_tile = None
+        # unload tiles that are more than 1 LOD away
+        for tile in self.preloaded_tiles[:]:
+            if tile in new_visible_tiles or not tile.loaded:
+                continue
 
-                # find the more detailed version of the tile
-                if tile_lod < self.lod_count - 1:
-                    more_detailed_tile = self.tiles[tile_lod + 1][tile_y][tile_x]
-                    if more_detailed_tile in new_visible_tiles:
-                        more_detailed_visible = True
+            tile_x = tile.get_x()
+            tile_y = tile.get_y()
+            tile_lod = tile.get_lod()
 
-                # find the less detailed version of the tile
-                if tile_lod > 0:
-                    less_detailed_tile = self.tiles[tile_lod - 1][tile_y][tile_x]
-                    if less_detailed_tile in new_visible_tiles:
-                        less_detailed_visible = True
+            unload = False
 
-                # if neither the more detailed nor the less detailed version
-                # of the tile are visible, unload the tile
-                if not more_detailed_visible and not less_detailed_visible:
-                    print(f"Unloading tile {tile.filename}...")
-                    tile.unload()
-                    self.preloaded_tiles.remove(tile)
+            # unload tiles for which there are visible tiles in
+            # LOD that is more than 1 LOD away
+            for visible_tile in new_visible_tiles:
+                if (
+                    visible_tile.get_x() == tile_x
+                    and visible_tile.get_y() == tile_y
+                    and abs(visible_tile.get_lod() - tile_lod) >= 3
+                ):
+                    unload = True
+                    break
+
+            if unload:
+                print(f"Unloading tile {tile.filename}...")
+                tile.unload()
+                self.preloaded_tiles.remove(tile)
 
     def get_visible_tiles(self, cam_pos, cam_target, cam_far, fov):
         # returns a list of tiles that will need to be rendered
