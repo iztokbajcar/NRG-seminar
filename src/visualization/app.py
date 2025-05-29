@@ -64,65 +64,35 @@ class App:
         points_z.append(0)
         points_class.append(3)
 
-        pos_buffer_data = np.concatenate(
-            [points_x, points_y, points_z], dtype=np.float32
-        )
-        class_buffer_data = np.array(points_class, dtype=np.int32)
         n_points = len(points_x)
 
-        vao = glGenVertexArrays(1)
+        # All attributes as float32 for OpenGL 2.1
+        pos_buffer_data = np.concatenate([
+            points_x, points_y, points_z
+        ], dtype=np.float32)
+        class_buffer_data = np.array(points_class, dtype=np.float32)  # float!
+        lod_data = np.array([float(tile.lod)] * n_points, dtype=np.float32)  # float!
+
+        # Generate VBOs
         vbo_pos = glGenBuffers(1)
         vbo_class = glGenBuffers(1)
-
-        glBindVertexArray(vao)
-
-        # load position data
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_pos)
-        glBufferData(
-            GL_ARRAY_BUFFER, pos_buffer_data.nbytes, pos_buffer_data, GL_STATIC_DRAW
-        )
-
-        # x coordinates
-        glEnableVertexAttribArray(0)
-        glVertexAttribPointer(0, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
-
-        # y coordinates
-        glEnableVertexAttribArray(1)
-        glVertexAttribPointer(
-            1, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(n_points * 4)
-        )
-
-        # z coordinates
-        glEnableVertexAttribArray(2)
-        glVertexAttribPointer(
-            2, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(2 * n_points * 4)
-        )
-
-        # load class data
-        glBindBuffer(GL_ARRAY_BUFFER, vbo_class)
-        glBufferData(
-            GL_ARRAY_BUFFER, class_buffer_data.nbytes, class_buffer_data, GL_STATIC_DRAW
-        )
-
-        # class attribute
-        glEnableVertexAttribArray(3)
-        glVertexAttribIPointer(3, 1, GL_INT, 0, ctypes.c_void_p(0))
-
-        # lod attribute
-        lod_data = np.array([tile.lod] * n_points, dtype=np.int32)
         vbo_lod = glGenBuffers(1)
 
+        # Upload position data (x, y, z as separate attributes)
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_pos)
+        glBufferData(GL_ARRAY_BUFFER, pos_buffer_data.nbytes, pos_buffer_data, GL_STATIC_DRAW)
+        # Upload class data
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_class)
+        glBufferData(GL_ARRAY_BUFFER, class_buffer_data.nbytes, class_buffer_data, GL_STATIC_DRAW)
+        # Upload LOD data
         glBindBuffer(GL_ARRAY_BUFFER, vbo_lod)
         glBufferData(GL_ARRAY_BUFFER, lod_data.nbytes, lod_data, GL_STATIC_DRAW)
-        glEnableVertexAttribArray(4)
-        glVertexAttribIPointer(4, 1, GL_INT, 0, ctypes.c_void_p(0))
-
-        # unbind
         glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glBindVertexArray(0)
 
-        # save VAO and number of points
-        tile.vao = vao
+        # Store VBOs and n_points in tile
+        tile.vbo_pos = vbo_pos
+        tile.vbo_class = vbo_class
+        tile.vbo_lod = vbo_lod
         tile.n_points = n_points
 
         print(f"Tile loaded onto GPU, number of points: {n_points}")
@@ -137,7 +107,7 @@ class App:
         ):
             tile = self.tile_manager.gpu_load_queue.get_nowait()
 
-            if tile.vao is None:
+            if not hasattr(tile, 'vbo_pos') or tile.vbo_pos is None:
                 self.upload_tile_data_to_gpu(tile)
 
             upload_count += 1
@@ -180,21 +150,43 @@ class App:
         )
         # print(f"Visible tiles: {len(visible_tiles)}")
 
-        # render visible tiles
         for tile in visible_tiles:
-            # request tile loading if necessary
-            if tile.vao is None:
-                # try to load the tile data from memory
+            if not hasattr(tile, 'vbo_pos') or tile.vbo_pos is None:
                 loaded = self.load_tile_data_from_memory(tile)
-
-                # if it failed, the tile is not in memory,
-                # so skip it (wait for it to load form disk)
                 if not loaded:
                     continue
 
-            glBindVertexArray(tile.vao)
-            glDrawArrays(GL_POINTS, 0, tile.n_points)
-            glBindVertexArray(0)
+            xatriblocation = glGetAttribLocation(self.program, "aXPos")
+            yatriblocation = glGetAttribLocation(self.program, "aYPos")
+            zatriblocation = glGetAttribLocation(self.program, "aZPos")
+            classatriblocation = glGetAttribLocation(self.program, "aClass")
+            lodatriblocation = glGetAttribLocation(self.program, "aLOD")
+
+            # Bind and set up attribute pointers for each attribute
+            n_points = tile.n_points
+            # Position (x, y, z as separate attributes)
+            glBindBuffer(GL_ARRAY_BUFFER, tile.vbo_pos)
+            glEnableVertexAttribArray(0)
+            glVertexAttribPointer(xatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+            glEnableVertexAttribArray(1)
+            glVertexAttribPointer(yatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(n_points * 4))
+            glEnableVertexAttribArray(2)
+            glVertexAttribPointer(zatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(2 * n_points * 4))
+            # Class
+            glBindBuffer(GL_ARRAY_BUFFER, tile.vbo_class)
+            glEnableVertexAttribArray(3)
+            glVertexAttribPointer(classatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+            # LOD
+            glBindBuffer(GL_ARRAY_BUFFER, tile.vbo_lod)
+            glEnableVertexAttribArray(4)
+            glVertexAttribPointer(lodatriblocation, 1, GL_FLOAT, GL_FALSE, 0, ctypes.c_void_p(0))
+
+            glDrawArrays(GL_POINTS, 0, n_points)
+
+            # Disable attributes and unbind
+            for i in range(5):
+                glDisableVertexAttribArray(i)
+            glBindBuffer(GL_ARRAY_BUFFER, 0)
 
         self.process_gpu_load_queue(tile_limit=1)
 
