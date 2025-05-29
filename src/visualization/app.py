@@ -3,6 +3,7 @@ import numpy as np
 from OpenGL.GL import *
 import OpenGL.GL.shaders as shaders
 from pyrr import Matrix44, Vector3
+import time
 
 from src.visualization.camera import Camera
 from src.visualization.shaders import VERTEX_SHADER, FRAGMENT_SHADER
@@ -10,7 +11,7 @@ from src.visualization.tile_manager import TileManager
 
 
 class App:
-    def __init__(self, tiles_dir, tiles_dim, lod_count):
+    def __init__(self, tiles_dir, tiles_dim, lod_count, benchmark=False):
         self.tile_manager = TileManager(tiles_dir, tiles_dim, lod_count)
         self.tilevaos = []
         self.window = None
@@ -28,6 +29,12 @@ class App:
             glfw.KEY_LEFT_SHIFT: False,
         }
         self.pan_sensitivity = 1
+        self.benchmark = benchmark
+        self.timings = {
+            "loading": [],
+            "gpu_upload": [],
+            "rendering": [],
+        }
 
         # whether to determine point color based on LOD instead of class
         self.draw_lod = False
@@ -53,6 +60,9 @@ class App:
     def upload_tile_data_to_gpu(self, tile):
         if not tile.loaded:
             return
+
+        # start timer
+        start = time.time()
 
         points_x = tile.pc.get_points_x()
         points_y = tile.pc.get_points_y()
@@ -95,7 +105,10 @@ class App:
         tile.vbo_lod = vbo_lod
         tile.n_points = n_points
 
-        print(f"Tile loaded onto GPU, number of points: {n_points}")
+        upload_time = time.time() - start
+        self.timings["gpu_upload"].append(upload_time)
+
+        print(f"Tile loaded onto GPU in {upload_time} s, number of points: {n_points}")
 
     def process_gpu_load_queue(self, tile_limit):
         upload_count = 0

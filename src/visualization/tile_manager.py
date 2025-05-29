@@ -1,6 +1,7 @@
 import os
 import laspy
 import numpy as np
+import time
 from queue import Queue
 from threading import Thread
 from src.point_cloud import PointCloud
@@ -299,3 +300,24 @@ class TileManager:
         self._update_memory(visible_tiles)
 
         return visible_tiles
+
+    def benchmark_loading(self):
+        # try to load all tiles and measure the time it takes
+        times = {}
+
+        print("Starting the tile loading benchmark...")
+
+        for lod_id in range(self.lod_count):
+            times[lod_id] = []
+
+            for i in range(self.grid_size[0]):
+                for j in range(self.grid_size[1]):
+                    tile = self.tiles[lod_id][i][j]
+                    start = time.time()
+                    tile.load()
+                    load_time = time.time() - start
+
+                    times[lod_id].append(load_time)
+
+        print("Tile loading benchamrk done.")
+        return times
