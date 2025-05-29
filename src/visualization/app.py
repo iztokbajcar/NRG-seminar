@@ -242,6 +242,10 @@ class App:
         if key == glfw.KEY_L and action == glfw.RELEASE:
             self.toggle_draw_lod()
 
+        # quit
+        if key == glfw.KEY_ESCAPE and action == glfw.RELEASE:
+            glfw.set_window_should_close(window, True)
+
         # panning
         if key in self.panning:
             # if the key is released, set to False
