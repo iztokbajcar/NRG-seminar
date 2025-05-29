@@ -15,14 +15,16 @@ uniform vec3 uCameraPos;
 uniform bool uDrawLOD;
 
 vec4 classToColor(float classID) {
-    if (classID == 1.0) return vec4(1, 1, 1, 1);         // unclassified
-    else if (classID == 2.0) return vec4(1, 0, 0, 1);    // ground
-    else if (classID == 3.0) return vec4(1, 1, 0, 1);    // low vegetation
-    else if (classID == 4.0) return vec4(0, 1, 0, 1);    // medium vegetation
-    else if (classID == 5.0) return vec4(0, 1, 1, 1);    // high vegetation
-    else if (classID == 6.0) return vec4(0, 0, 1, 1);    // building
-    else if (classID == 7.0) return vec4(1, 0, 1, 1);    // low point
-    else return vec4(0.5, 0.5, 0.5, 1);                  // other
+    float classID_mod8 = mod(classID, 8.0);
+
+    if (classID_mod8 == 1.0) return vec4(1, 1, 1, 1);         // unclassified
+    else if (classID_mod8 == 2.0) return vec4(1, 0, 0, 1);    // ground
+    else if (classID_mod8 == 3.0) return vec4(1, 1, 0, 1);    // low vegetation
+    else if (classID_mod8 == 4.0) return vec4(0, 1, 0, 1);    // medium vegetation
+    else if (classID_mod8 == 5.0) return vec4(0, 1, 1, 1);    // high vegetation
+    else if (classID_mod8 == 6.0) return vec4(0, 0, 1, 1);    // building
+    else if (classID_mod8 == 7.0) return vec4(1, 0, 1, 1);    // low point
+    else return vec4(0.5, 0.5, 0.5, 1);     // other
 }
 
 void main()
