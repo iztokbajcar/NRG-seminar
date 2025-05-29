@@ -201,7 +201,7 @@ class App:
                 glDisableVertexAttribArray(i)
             glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-        self.process_gpu_load_queue(tile_limit=1)
+        self.process_gpu_load_queue(tile_limit=5)
 
     def mouse_button_callback(self, window, button, action, mods):
         if button == glfw.MOUSE_BUTTON_LEFT:
