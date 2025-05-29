@@ -173,10 +173,21 @@ class TileManager:
         return tiles, (min_x, max_x, min_y, max_y, min_z, max_z)
 
     def choose_lod(self, dist):
-        lod_distances = [
-            (((self.lod_count - i) + 1) ** 2) * 50 for i in range(self.lod_count)
-        ]
-
+        
+        distance_smallest_lod = 1400 #TODO: make this dynamic
+        distance_largest_lod = 300 #TODO: make this dynamic
+        
+        # calculate [1400, ?, ?, 300] 
+        num_spans = self.lod_count - 2
+        lod_span = (distance_smallest_lod - distance_largest_lod) // num_spans
+        
+        lod_distances = []
+        
+        for i in range(num_spans):
+            lod_distances.append(distance_smallest_lod-(i*lod_span))
+            
+        lod_distances.append(distance_largest_lod)
+        
         for i, d in enumerate(lod_distances):
             if dist > d:
                 return i
