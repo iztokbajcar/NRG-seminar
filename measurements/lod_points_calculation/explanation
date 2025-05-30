@@ -1,0 +1,38 @@
+Certainly! Here’s an explanation of each func option in the get_n_points_for_lod method, which determines how the number of points for each Level of Detail (LOD) is calculated between a minimum and maximum:
+1. "linear"
+Description: The number of points increases linearly from the minimum to the maximum as the LOD level increases.
+Formula:
+n
+lod
+=
+min
++
+step
+×
+lod_level
+n 
+lod
+​
+ =min+step×lod_level
+where step is evenly spaced between min and max.
+Use case: When you want each LOD to add the same number of points as you go up in detail.
+2. "logarithmic"
+Description: The number of points increases logarithmically, so lower LODs have fewer points, and higher LODs add more points rapidly.
+Formula:
+Uses the natural logarithm to interpolate between min and max.
+Use case: When you want early LODs to be much sparser, but higher LODs to quickly approach the full point count.
+3. "exponential"
+Description: The number of points increases exponentially, so each higher LOD adds more points than the previous one.
+Formula:
+Uses the exponential function to interpolate between min and max.
+Use case: When you want the detail to increase very slowly at first, then much more rapidly at higher LODs.
+4. "logarithmic2"
+Description: Like "logarithmic", but with a steeper curve, so the increase in points is even more pronounced at higher LODs.
+Formula:
+Multiplies the logarithm by a factor (here, 3.0) to make the curve steeper.
+Use case: When you want even sparser low LODs and a very rapid increase in detail at higher LODs.
+5. "exponential2"
+Description: Like "exponential", but with a less steep curve, so the increase in points is more gradual.
+Formula:
+Uses the exponential function with a smaller exponent (divides by 2) to flatten the curve.
+Use case: When you want a smoother, more gradual increase in detail across LODs.

@@ -77,7 +77,7 @@ class SensitivitySampling:
         return PointCloud(x, y, z, sampled_classes)
 
     
-    def get_n_points_for_lod(self, num_lods, lod_level, n_points, func="exponential", lower_bound_compression=0.005, upper_bound_compression=0.7):
+    def get_n_points_for_lod(self, num_lods, lod_level, n_points, func="exponential2", lower_bound_compression=0.005, upper_bound_compression=0.7):
         min_point_count = n_points * lower_bound_compression
         max_point_count = n_points * upper_bound_compression
         if (func == "linear"):
@@ -121,9 +121,10 @@ class SensitivitySampling:
             # Less steep exponential interpolation between min and max point count
             if num_lods == 1:
                 return int(max_point_count)
+            exp_divisor = 0.5  # or 0.5 for even steeper
             exp_min = 1
-            exp_max = math.exp((num_lods - 1) / 2)  # Use sqrt for less steepness
-            exp_lod = math.exp(lod_level / 2)
+            exp_max = math.exp((num_lods - 1) / exp_divisor)
+            exp_lod = math.exp(lod_level / exp_divisor)
             n_lod_points = min_point_count + (max_point_count - min_point_count) * (exp_lod - exp_min) / (exp_max - exp_min)
             return int(round(n_lod_points))
         else:
