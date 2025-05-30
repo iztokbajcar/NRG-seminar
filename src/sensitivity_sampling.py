@@ -106,17 +106,6 @@ class SensitivitySampling:
             exp_lod = math.exp(lod_level)
             n_lod_points = min_point_count + (max_point_count - min_point_count) * (exp_lod - exp_min) / (exp_max - exp_min)
             return int(round(n_lod_points))
-        elif (func == "logarithmic2"):
-            # Steeper logarithmic interpolation between min and max point count
-            if num_lods == 1:
-                return int(max_point_count)
-            # Use a steeper log by multiplying the log argument
-            log_factor = 3.0  # Increase for steeper curve
-            log_min = math.log(1)
-            log_max = math.log(num_lods) * log_factor
-            log_lod = math.log(lod_level + 1) * log_factor
-            n_lod_points = min_point_count + (max_point_count - min_point_count) * (log_lod - log_min) / (log_max - log_min)
-            return int(round(n_lod_points))
         elif (func == "exponential2"):
             # Less steep exponential interpolation between min and max point count
             if num_lods == 1:
