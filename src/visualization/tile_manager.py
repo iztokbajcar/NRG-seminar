@@ -96,7 +96,9 @@ class Tile:
 
 
 class TileManager:
-    def __init__(self, tile_dir, grid_size, lod_count, preload_distance=1):
+    def __init__(
+        self, tile_dir, grid_size, lod_count, preload_distance=1, benchmark_results=None
+    ):
         self.tile_dir = tile_dir
         self.grid_size = grid_size
         self.lod_count = lod_count
@@ -105,6 +107,7 @@ class TileManager:
         self.preloaded_tiles = []
         self.load_queue = Queue()  # for loading points from disk
         self.gpu_load_queue = Queue()  # for sending tiles to the GPU
+        self.benchmark_results = benchmark_results
 
         # add a separate thread for loading tiles
         self.loader_thread = Thread(target=self._tile_loader, daemon=True)
@@ -173,21 +176,20 @@ class TileManager:
         return tiles, (min_x, max_x, min_y, max_y, min_z, max_z)
 
     def choose_lod(self, dist):
-        
-        distance_smallest_lod = 1400 #TODO: make this dynamic
-        distance_largest_lod = 300 #TODO: make this dynamic
-        
-        # calculate [1400, ?, ?, 300] 
+        distance_smallest_lod = 1400  # TODO: make this dynamic
+        distance_largest_lod = 300  # TODO: make this dynamic
+
+        # calculate [1400, ?, ?, 300]
         num_spans = self.lod_count - 2
         lod_span = (distance_smallest_lod - distance_largest_lod) // num_spans
-        
+
         lod_distances = []
-        
+
         for i in range(num_spans):
-            lod_distances.append(distance_smallest_lod-(i*lod_span))
-            
+            lod_distances.append(distance_smallest_lod - (i * lod_span))
+
         lod_distances.append(distance_largest_lod)
-        
+
         for i, d in enumerate(lod_distances):
             if dist > d:
                 return i
@@ -330,4 +332,4 @@ class TileManager:
                     times[lod_id].append(load_time)
 
         print("Tile loading benchamrk done.")
-        return times
+        return self.tiles, times

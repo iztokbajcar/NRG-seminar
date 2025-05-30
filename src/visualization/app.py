@@ -11,8 +11,14 @@ from src.visualization.tile_manager import TileManager
 
 
 class App:
-    def __init__(self, tiles_dir, tiles_dim, lod_count, benchmark=False):
-        self.tile_manager = TileManager(tiles_dir, tiles_dim, lod_count)
+    def __init__(
+        self,
+        tiles_dir,
+        tiles_dim,
+        lod_count,
+        benchmark=False,
+        frames=0,
+    ):
         self.tilevaos = []
         self.window = None
         self.vao = None
@@ -30,14 +36,23 @@ class App:
         }
         self.pan_sensitivity = 1
         self.benchmark = benchmark
-        self.timings = {
-            "loading": [],
-            "gpu_upload": [],
-            "rendering": [],
-        }
+        self.frames = (
+            frames  # number of frames to render, used for benchmarking (0 for no limit)
+        )
 
         # whether to determine point color based on LOD instead of class
         self.draw_lod = False
+
+        # initialize the benchmark dict if it is not None
+        if benchmark:
+            self.benchmark_results = {
+                "loading": [],
+                "gpu_upload": [],
+            }
+
+        self.tile_manager = TileManager(
+            tiles_dir, tiles_dim, lod_count, benchmark_results=self.benchmark_results
+        )
 
     def toggle_draw_lod(self):
         self.draw_lod = not self.draw_lod
@@ -110,8 +125,6 @@ class App:
         tile.n_points = n_points
 
         upload_time = time.time() - start
-        self.timings["gpu_upload"].append(upload_time)
-
         print(f"Tile loaded onto GPU in {upload_time} s, number of points: {n_points}")
 
     def process_gpu_load_queue(self, tile_limit):
@@ -281,57 +294,95 @@ class App:
         if dx != 0 or dy != 0 or dz != 0:
             self.camera.pan(dx, dy, dz, sensitivity=self.pan_sensitivity)
 
+    def benchmark_gpu_upload(self, tiles):
+        times = {}
+
+        for lod_id in range(len(tiles)):
+            times[lod_id] = []
+
+            for i in range(len(tiles[lod_id])):
+                for j in range(len(tiles[lod_id][i])):
+                    tile = tiles[lod_id][i][j]
+
+                    start = time.time()
+                    self.upload_tile_data_to_gpu(tile)
+                    gpu_upload_time = time.time() - start
+
+                    times[lod_id].append(gpu_upload_time)
+
+        return times
+
     def run(self):
-        # initialize GLFW
-        if not glfw.init():
-            raise Exception("Cannot initialize GLFW")
+        if self.benchmark:
+            # benchmark loading
+            print("===== Benchmarking loading tiles from disk =====")
+            tiles, load_times = self.tile_manager.benchmark_loading()
+            print("Load times:", load_times)
+            self.benchmark_results["loading"] = load_times
 
-        # try to create window
-        self.window = glfw.create_window(800, 600, "Seminarska naloga", None, None)
-        if not self.window:
+            # benchmark GPU upload
+            print("===== Benchmarking GPU upload =====")
+            gpu_upload_times = self.benchmark_gpu_upload(tiles)
+            print("GPU upload times:", gpu_upload_times)
+            self.benchmark_results["gpu_upload"] = gpu_upload_times
+
+            print("===== Benchmarking finished =====")
+        else:
+            # initialize GLFW
+            if not glfw.init():
+                raise Exception("Cannot initialize GLFW")
+
+            # try to create window
+            self.window = glfw.create_window(800, 600, "Seminarska naloga", None, None)
+            if not self.window:
+                glfw.terminate()
+                raise Exception("Cannot create the window")
+
+            glfw.make_context_current(self.window)
+            glPointSize(5.0)
+
+            # set viewport
+            w, h = glfw.get_framebuffer_size(self.window)
+            glViewport(0, 0, w, h)
+
+            # compile shaders
+            self.program = self.compile_shaders(VERTEX_SHADER, FRAGMENT_SHADER)
+            glUseProgram(self.program)
+            glEnable(GL_PROGRAM_POINT_SIZE)
+            glEnable(GL_DEPTH_TEST)
+
+            # camera
+            min_x, max_x, min_y, max_y, min_z, max_z = self.tile_manager.bounds
+            mean_x = (min_x + max_x) / 2
+            mean_y = (min_y + max_y) / 2
+            mean_z = (min_z + max_z) / 2
+
+            self.camera = Camera(Vector3([mean_x, mean_y, mean_z]))
+
+            # register input callbacks
+            glfw.set_cursor_pos_callback(self.window, self.mouse_callback)
+            glfw.set_scroll_callback(self.window, self.scroll_callback)
+            glfw.set_mouse_button_callback(self.window, self.mouse_button_callback)
+            glfw.set_key_callback(self.window, self.key_callback)
+            glfw.set_framebuffer_size_callback(self.window, self.resize_callback)
+
+            print("Entering render loop")
+
+            while not glfw.window_should_close(self.window):
+                glfw.poll_events()
+
+                self.handle_panning()
+                self.render()
+
+                glfw.swap_buffers(self.window)
+
+                if self.frames > 0:
+                    self.frames -= 1
+                    if self.frames == 0:
+                        glfw.set_window_should_close(self.window, True)
+
+            glfw.destroy_window(self.window)
             glfw.terminate()
-            raise Exception("Cannot create the window")
-
-        glfw.make_context_current(self.window)
-        glPointSize(5.0)
-
-        # set viewport
-        w, h = glfw.get_framebuffer_size(self.window)
-        glViewport(0, 0, w, h)
-
-        # compile shaders
-        self.program = self.compile_shaders(VERTEX_SHADER, FRAGMENT_SHADER)
-        glUseProgram(self.program)
-        glEnable(GL_PROGRAM_POINT_SIZE)
-        glEnable(GL_DEPTH_TEST)
-
-        # camera
-        min_x, max_x, min_y, max_y, min_z, max_z = self.tile_manager.bounds
-        mean_x = (min_x + max_x) / 2
-        mean_y = (min_y + max_y) / 2
-        mean_z = (min_z + max_z) / 2
-
-        self.camera = Camera(Vector3([mean_x, mean_y, mean_z]))
-
-        # register input callbacks
-        glfw.set_cursor_pos_callback(self.window, self.mouse_callback)
-        glfw.set_scroll_callback(self.window, self.scroll_callback)
-        glfw.set_mouse_button_callback(self.window, self.mouse_button_callback)
-        glfw.set_key_callback(self.window, self.key_callback)
-        glfw.set_framebuffer_size_callback(self.window, self.resize_callback)
-
-        print("Entering render loop")
-
-        while not glfw.window_should_close(self.window):
-            glfw.poll_events()
-
-            self.handle_panning()
-            self.render()
-
-            glfw.swap_buffers(self.window)
-
-        glfw.destroy_window(self.window)
-        glfw.terminate()
 
 
 # ruff: noqa: F405
