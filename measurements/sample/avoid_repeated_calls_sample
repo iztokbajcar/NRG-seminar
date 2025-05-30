@@ -1,0 +1,48 @@
+Number of all points: 14174243
+Generating LOD 0 with 70871 points
+/Users/zigaklun/fri/drugimag/nrg/NRG-seminar/src/sensitivity_sampling.py:46: RuntimeWarning: divide by zero encountered in divide
+  W = 1 / (sample_size * sensitivities[sampled_indices])
+Sampling took 0.2086 seconds.
+Generating LOD 1 with 386684 points
+Sampling took 0.4639 seconds.
+Generating LOD 2 with 1245151 points
+Sampling took 1.3453 seconds.
+Generating LOD 3 with 3578707 points
+Sampling took 3.1200 seconds.
+Generating LOD 4 with 9921970 points
+Sampling took 8.6793 seconds.
+
+
+#describe how we optimized the code in this step
+Step 2: Avoid Repeated Calls to Expensive Methods
+What was the issue?
+In the original implementation, the methods self.point_cloud.get_labels() and self.point_cloud.to_array() were called multiple times within the sample and compress methods. These methods can be computationally expensive, especially for large point clouds, as they may involve significant data processing or memory allocation.
+How did we optimize?
+Single Retrieval and Reuse:
+We modified the code to call self.point_cloud.get_labels() and self.point_cloud.to_array() only once per operation. The results are stored in local variables and reused throughout the method, rather than recalculating or re-fetching them multiple times.
+Passing Data Between Methods:
+We updated the sample method to accept optional arguments for the point array (P) and labels. When calling sample from compress, we pass these precomputed arrays, ensuring that the data is only generated once and then reused.
+Why is this better?
+Performance:
+By avoiding redundant computations and memory allocations, the code runs faster and uses less memory, especially for large datasets.
+Clarity:
+The code is easier to read and maintain, as it is clear where and how often data is being fetched or computed.
+
+Example of the change:
+Before:
+
+labels = self.point_cloud.get_labels()
+# ... later ...
+labels = self.point_cloud.get_labels()
+P = self.point_cloud.to_array()
+# ... later ...
+P = self.point_cloud.to_array()
+
+After:
+
+labels = self.point_cloud.get_labels()
+P = self.point_cloud.to_array()
+# Pass P and labels to other methods as needed
+
+In summary:
+We optimized the code by ensuring that expensive data retrieval methods are called only once per operation, and their results are reused, leading to improved efficiency and clarity.

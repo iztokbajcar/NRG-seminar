@@ -1,0 +1,52 @@
+Number of all points: 14174243
+Generating LOD 0 with 70871 points
+Sampling took 14.2129 seconds.
+Generating LOD 1 with 386684 points
+Sampling took 3.8412 seconds.
+Generating LOD 2 with 1245151 points
+Sampling took 4.5656 seconds.
+Generating LOD 3 with 3578707 points
+Sampling took 6.6486 seconds.
+Generating LOD 4 with 9921970 points
+Sampling took 11.7775 seconds.
+
+#describe what we vectorized (we need this for report)
+Background
+The original implementation of the sample method in the SensitivitySampling class used nested Python loops to compute the sensitivity (importance) of each point in a point cloud for sampling. Specifically, it iterated over each cluster and then over each point within the cluster to calculate distances and sensitivities. This approach was inefficient for large point clouds due to the overhead of Python loops and dynamic data structures.
+What We Vectorized
+1. Distance and Sensitivity Calculation
+Before:
+For each cluster, the code looped over every point in the cluster to compute the squared distance to the cluster center and then calculated the sensitivity (mu_p) for each point individually.
+Sensitivities were stored in a Python dictionary with a manual index counter.
+After (Vectorized):
+For each cluster, all distances from points to the cluster center are computed at once using numpy’s vectorized operations (np.linalg.norm and broadcasting).
+The sensitivity values for all points in a cluster are calculated simultaneously as numpy arrays, eliminating the need for explicit Python loops over points.
+Sensitivities are stored directly in a preallocated numpy array, and numpy’s boolean indexing is used to assign values to the correct points in the global array.
+2. Index Management
+Before:
+A manual index (idx) was incremented for each point to keep track of sensitivities.
+After (Vectorized):
+Numpy’s boolean masks are used to directly assign computed sensitivities to the correct indices in the array, removing the need for manual index tracking.
+Impact
+Performance: The vectorized implementation leverages numpy’s optimized C backend, resulting in significant speedups, especially for large point clouds.
+Memory Efficiency: Preallocating arrays and avoiding Python dictionaries/lists reduces memory overhead.
+Code Clarity: The code is now more concise, readable, and maintainable.
+
+ORIGINAL EXAMPLE:
+
+for cluster in clusters:
+    for point in cluster:
+        cost_p = np.linalg.norm(point - center) ** 2
+        mu_p = 1 / (self.k * len(cluster)) + cost_p / cost_cluster_k
+        dist[idx] = mu_p
+        idx += 1
+
+OPTIMIZED EXAMPLE:
+
+dists = np.linalg.norm(cluster - center, axis=1) ** 2
+mu_p = 1 / (self.k * len(cluster)) + dists / cost_cluster_k
+sensitivities[mask] = mu_p
+
+In summary:
+We replaced slow, nested Python loops with efficient, vectorized numpy operations for both distance and sensitivity calculations, and used advanced indexing to manage assignments, resulting in a much faster and more scalable sampling method.
+        
