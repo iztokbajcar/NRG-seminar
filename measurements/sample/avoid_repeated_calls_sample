@@ -1,7 +1,5 @@
 Number of all points: 14174243
 Generating LOD 0 with 70871 points
-/Users/zigaklun/fri/drugimag/nrg/NRG-seminar/src/sensitivity_sampling.py:46: RuntimeWarning: divide by zero encountered in divide
-  W = 1 / (sample_size * sensitivities[sampled_indices])
 Sampling took 0.2086 seconds.
 Generating LOD 1 with 386684 points
 Sampling took 0.4639 seconds.
