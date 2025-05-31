@@ -31,8 +31,8 @@ void main()
 {
     vec4 worldPosition = uModel * vec4(aXPos, aYPos, aZPos, 1.0);
     float distance = length(worldPosition.xyz - uCameraPos);
-    float size = 20.0 / distance;
-    gl_PointSize = clamp(size, 2.0, 10.0);
+    float size = 100.0 / distance;
+    gl_PointSize = clamp(size, 2.0, 100.0);
 
     gl_Position = uProjection * uView * uModel * vec4(aXPos, aYPos, aZPos, 1.0);
 
