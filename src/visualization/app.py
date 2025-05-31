@@ -49,6 +49,8 @@ class App:
                 "loading": [],
                 "gpu_upload": [],
             }
+        else:
+            self.benchmark_results = None
 
         self.tile_manager = TileManager(
             tiles_dir, tiles_dim, lod_count, benchmark_results=self.benchmark_results
