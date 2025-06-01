@@ -6,4 +6,5 @@ __pycache__/
 .pdm-python
 .venv
 data
+plots
 **/.DS_Store
